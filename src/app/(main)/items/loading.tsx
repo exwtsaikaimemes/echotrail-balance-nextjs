@@ -1,0 +1,23 @@
+import { Skeleton } from "@/components/ui/skeleton";
+
+export default function ItemsLoading() {
+  return (
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-9 w-64" />
+        <div className="flex gap-2">
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-9 w-24" />
+          <Skeleton className="h-9 w-32" />
+        </div>
+      </div>
+      <div className="border rounded-lg">
+        <div className="p-4 space-y-3">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <Skeleton key={i} className="h-10 w-full" />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
