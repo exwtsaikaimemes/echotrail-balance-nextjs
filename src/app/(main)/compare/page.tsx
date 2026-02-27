@@ -1,10 +1,10 @@
 "use client";
 
-import { useCallback } from "react";
+import { Suspense, useCallback } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { CompareColumn } from "@/components/compare/compare-column";
 
-export default function ComparePage() {
+function CompareContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -44,5 +44,13 @@ export default function ComparePage() {
         />
       </div>
     </div>
+  );
+}
+
+export default function ComparePage() {
+  return (
+    <Suspense>
+      <CompareContent />
+    </Suspense>
   );
 }
