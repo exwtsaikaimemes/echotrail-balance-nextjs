@@ -6,7 +6,10 @@ const PORT = parseInt(process.env.WS_PORT || "3002");
 const httpServer = createServer();
 const io = new Server(httpServer, {
   cors: {
-    origin: process.env.NEXTAUTH_URL || "http://localhost:3000",
+    origin: [
+      process.env.NEXTAUTH_URL || "http://localhost:3000",
+      "https://itemeditor.tsaismp.com",
+    ],
     methods: ["GET", "POST"],
     credentials: true,
   },
@@ -57,15 +60,15 @@ httpServer.on("request", (req, res) => {
     req.on("data", (chunk) => { body += chunk; });
     req.on("end", () => {
       try {
-        const { event, excludeUserId } = JSON.parse(body);
+        const { event, excludeSocketId } = JSON.parse(body);
 
-        if (excludeUserId) {
-          // Send to all except the excluded user
-          connectedUsers.forEach((user, socketId) => {
-            if (user.userId !== excludeUserId) {
+        if (excludeSocketId) {
+          // Send to all except the originating socket
+          for (const [socketId] of connectedUsers) {
+            if (socketId !== excludeSocketId) {
               io.to(socketId).emit("message", JSON.stringify(event));
             }
-          });
+          }
         } else {
           // Send to all
           io.emit("message", JSON.stringify(event));

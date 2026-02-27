@@ -32,8 +32,8 @@ export const itemSchema = z.object({
   itemKey: z.string().min(1).max(255),
   objectName: z.string().min(1).max(255),
   customName: z.string().min(1).max(255),
-  equipment: z.string(),
-  rarity: z.string(),
+  equipment: z.string().min(1, "Equipment type is required"),
+  rarity: z.string().min(1, "Rarity is required"),
   usesBaseStats: z.boolean(),
   secretItem: z.boolean(),
   canDrop: z.boolean(),
@@ -59,7 +59,13 @@ export const commentSchema = z.object({
 });
 
 export const formulaSchema = z.object({
-  formula: z.enum(["weight_x_max", "weight_x_avg", "weight_x_range", "flat_weight"]),
+  formula: z.string().min(1),
+});
+
+export const budgetFormulaSchema = z.object({
+  name: z.string().min(1).max(64),
+  expression: z.string().min(1).max(255),
+  description: z.string().optional(),
 });
 
 export const weightsSchema = z.object({

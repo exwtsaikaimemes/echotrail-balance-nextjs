@@ -16,15 +16,16 @@ const SLUG_TO_TITLE: Record<string, string> = {
 };
 
 interface WikiArticlePageProps {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }
 
 export function generateStaticParams() {
   return Object.keys(SLUG_TO_FILE).map((slug) => ({ slug }));
 }
 
-export default function WikiArticlePage({ params }: WikiArticlePageProps) {
-  const fileName = SLUG_TO_FILE[params.slug];
+export default async function WikiArticlePage({ params }: WikiArticlePageProps) {
+  const { slug } = await params;
+  const fileName = SLUG_TO_FILE[slug];
   if (!fileName) {
     notFound();
   }
@@ -38,7 +39,7 @@ export default function WikiArticlePage({ params }: WikiArticlePageProps) {
     notFound();
   }
 
-  const title = SLUG_TO_TITLE[params.slug] ?? params.slug;
+  const title = SLUG_TO_TITLE[slug] ?? slug;
 
   return (
     <div className="max-w-4xl space-y-6">

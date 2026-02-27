@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import pool from "@/lib/db";
 import { requireAuth } from "@/lib/auth-guard";
-import { formulaSchema } from "@/lib/validators";
 import { broadcast } from "@/lib/ws-broadcast";
 
 function parseJSON(val: unknown): Record<string, unknown> {
@@ -15,14 +14,24 @@ export async function PUT(request: NextRequest) {
 
   try {
     const body = await request.json();
-    const parsed = formulaSchema.safeParse(body);
-    if (!parsed.success) {
-      return NextResponse.json({ error: "formula required" }, { status: 400 });
+    const formulaName = body.formula;
+    if (!formulaName || typeof formulaName !== "string") {
+      return NextResponse.json({ error: "formula name required" }, { status: 400 });
+    }
+
+    // Verify the formula name exists in the formulas table
+    const [formulaRows] = await pool.execute(
+      "SELECT name FROM echotrail_itemmanager_budget_formulas WHERE name = ?",
+      [formulaName]
+    ) as any;
+
+    if (formulaRows.length === 0) {
+      return NextResponse.json({ error: `Formula "${formulaName}" not found` }, { status: 404 });
     }
 
     await pool.execute(
       "UPDATE echotrail_itemmanager_balance_config SET formula = ?, modified_by = ?, modified_at = NOW() WHERE id = 1",
-      [parsed.data.formula, session!.user.username]
+      [formulaName, session!.user.username]
     );
 
     const [updatedRows] = await pool.execute("SELECT * FROM echotrail_itemmanager_balance_config WHERE id = 1") as any;
@@ -36,7 +45,7 @@ export async function PUT(request: NextRequest) {
 
     broadcast(
       { type: "balance:updated", balanceConfig: balanceConfig as any, by: session!.user.username },
-      session!.user.id
+      request.headers.get("x-socket-id") ?? undefined
     );
 
     return NextResponse.json({ balanceConfig });

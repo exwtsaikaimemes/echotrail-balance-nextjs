@@ -75,7 +75,7 @@ export async function POST(request: NextRequest) {
 
     broadcast(
       { type: "item:created", item: createdItem, by: session!.user.username },
-      session!.user.id
+      request.headers.get("x-socket-id") ?? undefined
     );
     broadcastToAll({
       type: "history:new",
@@ -107,7 +107,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function DELETE() {
+export async function DELETE(request: NextRequest) {
   const { error, session } = await requireAuth();
   if (error) return error;
 
@@ -115,7 +115,7 @@ export async function DELETE() {
 
   broadcast(
     { type: "items:cleared", by: session!.user.username },
-    session!.user.id
+    request.headers.get("x-socket-id") ?? undefined
   );
 
   return new NextResponse(null, { status: 204 });

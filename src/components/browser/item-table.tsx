@@ -1,6 +1,7 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState, useCallback } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import {
   Table,
@@ -11,12 +12,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { computeItemBudget, type BudgetBreakdown } from "@/lib/budget";
 import { RARITY_COLORS } from "@/constants/rarities";
@@ -24,6 +19,7 @@ import { getEquipClass } from "@/constants/equipment";
 import type { Item } from "@/types/item";
 import type { BalanceConfig } from "@/types/balance";
 import type { SortField, SortDirection } from "@/app/(main)/items/page";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   ArrowUp,
   ArrowDown,
@@ -39,6 +35,8 @@ interface ItemTableProps {
   sortField: SortField;
   sortDirection: SortDirection;
   onSort: (field: SortField) => void;
+  compareSelection?: Set<string>;
+  onToggleCompare?: (itemKey: string) => void;
 }
 
 function SortIcon({
@@ -75,8 +73,25 @@ export function ItemTable({
   sortField,
   sortDirection,
   onSort,
+  compareSelection,
+  onToggleCompare,
 }: ItemTableProps) {
   const router = useRouter();
+
+  const [hoveredItemId, setHoveredItemId] = useState<string | null>(null);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+  const handleMouseEnter = useCallback((id: string) => {
+    setHoveredItemId(id);
+  }, []);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    setMousePos({ x: e.clientX, y: e.clientY });
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredItemId(null);
+  }, []);
 
   const budgetMap = useMemo(() => {
     const map: Record<string, BudgetBreakdown> = {};
@@ -86,6 +101,10 @@ export function ItemTable({
     }
     return map;
   }, [items, balanceConfig]);
+
+  const hoveredItem = hoveredItemId
+    ? items.find((i) => i.id === hoveredItemId)
+    : null;
 
   if (items.length === 0) {
     return (
@@ -102,6 +121,7 @@ export function ItemTable({
 
   const columns: { field: SortField; label: string; className?: string }[] = [
     { field: "name", label: "Name", className: "min-w-[200px]" },
+    { field: "id", label: "ID", className: "w-[180px]" },
     { field: "rarity", label: "Rarity", className: "w-[120px]" },
     { field: "equipment", label: "Equipment", className: "w-[130px]" },
     { field: "budget", label: "Budget", className: "w-[120px]" },
@@ -110,12 +130,17 @@ export function ItemTable({
     { field: "comments", label: "Comments", className: "w-[100px]" },
   ];
 
+  const tooltipBudget = hoveredItemId ? budgetMap[hoveredItemId] : undefined;
+
   return (
-    <TooltipProvider delayDuration={300}>
+    <>
       <div className="rounded-md border">
         <Table>
           <TableHeader>
             <TableRow>
+              {onToggleCompare && (
+                <TableHead className="w-10" />
+              )}
               {columns.map((col) => (
                 <TableHead
                   key={col.field}
@@ -145,168 +170,195 @@ export function ItemTable({
               const equipClass = getEquipClass(item.equipment);
 
               return (
-                <Tooltip key={item.id}>
-                  <TooltipTrigger asChild>
-                    <TableRow
-                      className="cursor-pointer"
-                      onClick={() => router.push(`/items/${item.id}`)}
-                    >
-                      {/* Name */}
-                      <TableCell className="font-medium">
-                        <div className="flex flex-col">
-                          <span>{item.customName || item.itemKey}</span>
-                          {item.customName && item.itemKey !== item.customName && (
-                            <span className="text-xs text-muted-foreground">
-                              {item.itemKey}
-                            </span>
-                          )}
-                        </div>
-                      </TableCell>
-
-                      {/* Rarity */}
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className="border-transparent font-semibold text-xs"
-                          style={{
-                            color: RARITY_COLORS[item.rarity] ?? "#888",
-                            backgroundColor: `${RARITY_COLORS[item.rarity] ?? "#888"}18`,
-                          }}
-                        >
-                          {item.rarity}
-                        </Badge>
-                      </TableCell>
-
-                      {/* Equipment */}
-                      <TableCell>
-                        <span className="text-sm">{equipClass}</span>
-                        <span className="text-xs text-muted-foreground ml-1">
-                          {item.equipment.split(".")[1]}
-                        </span>
-                      </TableCell>
-
-                      {/* Budget */}
-                      <TableCell>
-                        {budget && budget.allowed > 0 ? (
-                          <span
-                            className={cn(
-                              "text-sm font-mono tabular-nums",
-                              getBudgetColor(budget)
-                            )}
-                          >
-                            {budget.used}
-                            <span className="text-muted-foreground">
-                              {" "}/ {budget.allowed}
-                            </span>
-                          </span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">
-                            --
-                          </span>
-                        )}
-                      </TableCell>
-
-                      {/* Attributes count */}
-                      <TableCell>
-                        <span className="text-sm tabular-nums">
-                          {item.attributes.length}
-                        </span>
-                      </TableCell>
-
-                      {/* Enchantments count */}
-                      <TableCell>
-                        <span className="text-sm tabular-nums">
-                          {item.enchantments.length}
-                        </span>
-                      </TableCell>
-
-                      {/* Comments count */}
-                      <TableCell>
-                        {commentCount > 0 ? (
-                          <span className="inline-flex items-center gap-1 text-sm">
-                            <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
-                            <span className="tabular-nums">{commentCount}</span>
-                          </span>
-                        ) : (
-                          <span className="text-sm text-muted-foreground">
-                            --
-                          </span>
-                        )}
-                      </TableCell>
-
-                      {/* Status (Test badge) */}
-                      <TableCell>
-                        {item.isTest && (
-                          <Badge
-                            variant="outline"
-                            className="text-xs border-yellow-600/50 text-yellow-500 bg-yellow-950/30"
-                          >
-                            <FlaskConical className="h-3 w-3 mr-1" />
-                            Test
-                          </Badge>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  </TooltipTrigger>
-                  {item.attributes.length > 0 && (
-                    <TooltipContent side="bottom" align="start" className="max-w-sm">
-                      <div className="space-y-1">
-                        <p className="font-semibold text-xs mb-1.5">
-                          Attributes ({item.attributes.length})
-                        </p>
-                        {item.attributes.map((attr, i) => (
-                          <div
-                            key={`${attr.name}-${i}`}
-                            className="flex items-center justify-between gap-4 text-xs"
-                          >
-                            <span>
-                              <span
-                                className={cn(
-                                  attr.category === "Custom"
-                                    ? "text-blue-400"
-                                    : "text-green-400"
-                                )}
-                              >
-                                {attr.name}
-                              </span>
-                              {attr.bypassBP && (
-                                <span className="text-muted-foreground ml-1">
-                                  (bypass)
-                                </span>
-                              )}
-                            </span>
-                            <span className="text-muted-foreground font-mono">
-                              {attr.bounds
-                                .map((b) =>
-                                  b.type === "String"
-                                    ? `"${b.min}"`
-                                    : `${b.min}-${b.max}`
-                                )
-                                .join(", ")}
-                            </span>
-                          </div>
-                        ))}
-                        {budget && budget.allowed > 0 && (
-                          <div className="border-t border-border pt-1 mt-1.5">
-                            <span
-                              className={cn(
-                                "text-xs font-mono",
-                                getBudgetColor(budget)
-                              )}
-                            >
-                              Budget: {budget.used} / {budget.allowed}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    </TooltipContent>
+                <TableRow
+                  key={item.id}
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/items/${item.itemKey}`)}
+                  onMouseEnter={() => handleMouseEnter(item.id)}
+                  onMouseMove={handleMouseMove}
+                  onMouseLeave={handleMouseLeave}
+                >
+                  {/* Compare checkbox */}
+                  {onToggleCompare && (
+                    <TableCell className="w-10">
+                      <Checkbox
+                        checked={compareSelection?.has(item.itemKey) ?? false}
+                        disabled={
+                          !compareSelection?.has(item.itemKey) &&
+                          (compareSelection?.size ?? 0) >= 2
+                        }
+                        onCheckedChange={() => onToggleCompare(item.itemKey)}
+                        onClick={(e) => e.stopPropagation()}
+                      />
+                    </TableCell>
                   )}
-                </Tooltip>
+
+                  {/* Name */}
+                  <TableCell className="font-medium">
+                    {item.customName || item.itemKey}
+                  </TableCell>
+
+                  {/* ID */}
+                  <TableCell>
+                    <code className="text-xs font-mono text-muted-foreground">
+                      {item.itemKey}
+                    </code>
+                  </TableCell>
+
+                  {/* Rarity */}
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className="border-transparent font-semibold text-xs"
+                      style={{
+                        color: RARITY_COLORS[item.rarity] ?? "#888",
+                        backgroundColor: `${RARITY_COLORS[item.rarity] ?? "#888"}18`,
+                      }}
+                    >
+                      {item.rarity}
+                    </Badge>
+                  </TableCell>
+
+                  {/* Equipment */}
+                  <TableCell>
+                    <span className="text-sm">{equipClass}</span>
+                    <span className="text-xs text-muted-foreground ml-1">
+                      {item.equipment.split(".")[1]}
+                    </span>
+                  </TableCell>
+
+                  {/* Budget */}
+                  <TableCell>
+                    {budget && budget.allowed > 0 ? (
+                      <span
+                        className={cn(
+                          "text-sm font-mono tabular-nums",
+                          getBudgetColor(budget)
+                        )}
+                      >
+                        {budget.used}
+                        <span className="text-muted-foreground">
+                          {" "}/ {budget.allowed}
+                        </span>
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">
+                        --
+                      </span>
+                    )}
+                  </TableCell>
+
+                  {/* Attributes count */}
+                  <TableCell>
+                    <span className="text-sm tabular-nums">
+                      {item.attributes.length}
+                    </span>
+                  </TableCell>
+
+                  {/* Enchantments count */}
+                  <TableCell>
+                    <span className="text-sm tabular-nums">
+                      {item.enchantments.length}
+                    </span>
+                  </TableCell>
+
+                  {/* Comments count */}
+                  <TableCell>
+                    {commentCount > 0 ? (
+                      <span className="inline-flex items-center gap-1 text-sm">
+                        <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                        <span className="tabular-nums">{commentCount}</span>
+                      </span>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">
+                        --
+                      </span>
+                    )}
+                  </TableCell>
+
+                  {/* Status (Test badge) */}
+                  <TableCell>
+                    {item.isTest && (
+                      <Badge
+                        variant="outline"
+                        className="text-xs border-yellow-600/50 text-yellow-500 bg-yellow-950/30"
+                      >
+                        <FlaskConical className="h-3 w-3 mr-1" />
+                        Test
+                      </Badge>
+                    )}
+                  </TableCell>
+                </TableRow>
               );
             })}
           </TableBody>
         </Table>
       </div>
-    </TooltipProvider>
+
+      {/* Cursor-following tooltip */}
+      {hoveredItem &&
+        hoveredItem.attributes.length > 0 &&
+        typeof document !== "undefined" &&
+        createPortal(
+          <div
+            className="pointer-events-none fixed z-50 max-w-sm rounded-md border bg-popover px-3 py-2 text-popover-foreground shadow-md"
+            style={{
+              left: mousePos.x + 12,
+              top: mousePos.y + 16,
+            }}
+          >
+            <div className="space-y-1">
+              <p className="font-semibold text-xs mb-1.5">
+                Attributes ({hoveredItem.attributes.length})
+              </p>
+              {hoveredItem.attributes.map((attr, i) => (
+                <div
+                  key={`${attr.name}-${i}`}
+                  className="flex items-center justify-between gap-4 text-xs"
+                >
+                  <span>
+                    <span
+                      className={cn(
+                        attr.category === "Custom"
+                          ? "text-blue-400"
+                          : "text-green-400"
+                      )}
+                    >
+                      {attr.name}
+                    </span>
+                    {attr.bypassBP && (
+                      <span className="text-muted-foreground ml-1">
+                        (bypass)
+                      </span>
+                    )}
+                  </span>
+                  <span className="text-muted-foreground font-mono">
+                    {attr.bounds
+                      .map((b) =>
+                        b.type === "String"
+                          ? `"${b.min}"`
+                          : `${b.min}-${b.max}`
+                      )
+                      .join(", ")}
+                  </span>
+                </div>
+              ))}
+              {tooltipBudget && tooltipBudget.allowed > 0 && (
+                <div className="border-t border-border pt-1 mt-1.5">
+                  <span
+                    className={cn(
+                      "text-xs font-mono",
+                      getBudgetColor(tooltipBudget)
+                    )}
+                  >
+                    Budget: {tooltipBudget.used} / {tooltipBudget.allowed}
+                  </span>
+                </div>
+              )}
+            </div>
+          </div>,
+          document.body
+        )}
+    </>
   );
 }

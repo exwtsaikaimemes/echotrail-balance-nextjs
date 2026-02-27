@@ -13,6 +13,7 @@ import {
 import { useBalanceConfig } from "@/hooks/use-balance";
 import type { Item } from "@/types/item";
 import { emptyItem } from "@/types/item";
+import { getEquipClass } from "@/constants/equipment";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import {
@@ -95,6 +96,7 @@ export function ItemEditorForm({ initialItem }: ItemEditorFormProps) {
   } = methods;
 
   const watchedName = watch("customName");
+  const watchedEquipment = watch("equipment");
   const watchedItem = watch();
 
   // Auto-generate id fields from name for new items
@@ -102,10 +104,11 @@ export function ItemEditorForm({ initialItem }: ItemEditorFormProps) {
     if (!isEditMode && watchedName) {
       const slug = slugify(watchedName);
       const objName = toObjectName(watchedName);
+      const equipClass = getEquipClass(watchedEquipment ?? "");
       setValue("itemKey", slug.toLowerCase(), { shouldDirty: true });
-      setValue("objectName", objName, { shouldDirty: true });
+      setValue("objectName", objName + equipClass, { shouldDirty: true });
     }
-  }, [watchedName, isEditMode, setValue]);
+  }, [watchedName, watchedEquipment, isEditMode, setValue]);
 
   const onSubmit = useCallback(
     async (data: Item) => {
@@ -154,8 +157,8 @@ export function ItemEditorForm({ initialItem }: ItemEditorFormProps) {
       };
       const result = await createItem.mutateAsync(copyData);
       toast.success("Item duplicated successfully.");
-      if (result?.item?.id) {
-        router.push(`/items/${result.item.id}`);
+      if (result?.item?.itemKey) {
+        router.push(`/items/${result.item.itemKey}`);
       } else {
         router.push("/items");
       }
@@ -187,7 +190,7 @@ export function ItemEditorForm({ initialItem }: ItemEditorFormProps) {
     <FormProvider {...methods}>
       <form onSubmit={handleSubmit(onSubmit)}>
         {/* Action bar */}
-        <div className="flex items-center justify-between mb-6">
+        <div className="flex items-center gap-2 mb-6">
           <Button
             type="button"
             variant="ghost"
@@ -198,72 +201,70 @@ export function ItemEditorForm({ initialItem }: ItemEditorFormProps) {
             Back to Items
           </Button>
 
-          <div className="flex items-center gap-2">
-            {isEditMode && (
-              <>
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDuplicate}
-                  disabled={createItem.isPending}
-                >
-                  <Copy className="mr-2 h-4 w-4" />
-                  Duplicate
-                </Button>
+          <Button type="submit" size="sm" disabled={isSaving}>
+            {isSaving ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : (
+              <Save className="mr-2 h-4 w-4" />
+            )}
+            {isEditMode ? "Save Changes" : "Create Item"}
+          </Button>
 
-                <Dialog>
-                  <DialogTrigger asChild>
+          {isEditMode && (
+            <>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleDuplicate}
+                disabled={createItem.isPending}
+              >
+                <Copy className="mr-2 h-4 w-4" />
+                Duplicate
+              </Button>
+
+              <Dialog>
+                <DialogTrigger asChild>
+                  <Button
+                    type="button"
+                    variant="destructive"
+                    size="sm"
+                  >
+                    <Trash2 className="mr-2 h-4 w-4" />
+                    Delete
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Delete Item</DialogTitle>
+                    <DialogDescription>
+                      Are you sure you want to delete &quot;
+                      {initialItem?.customName}&quot;? This action cannot be
+                      undone.
+                    </DialogDescription>
+                  </DialogHeader>
+                  <DialogFooter>
                     <Button
                       type="button"
                       variant="destructive"
-                      size="sm"
+                      onClick={handleDelete}
+                      disabled={deleteItem.isPending}
                     >
-                      <Trash2 className="mr-2 h-4 w-4" />
-                      Delete
+                      {deleteItem.isPending && (
+                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                      )}
+                      Confirm Delete
                     </Button>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Delete Item</DialogTitle>
-                      <DialogDescription>
-                        Are you sure you want to delete &quot;
-                        {initialItem?.customName}&quot;? This action cannot be
-                        undone.
-                      </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter>
-                      <Button
-                        type="button"
-                        variant="destructive"
-                        onClick={handleDelete}
-                        disabled={deleteItem.isPending}
-                      >
-                        {deleteItem.isPending && (
-                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                        )}
-                        Confirm Delete
-                      </Button>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </>
-            )}
-
-            <Button type="submit" size="sm" disabled={isSaving}>
-              {isSaving ? (
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-              ) : (
-                <Save className="mr-2 h-4 w-4" />
-              )}
-              {isEditMode ? "Save Changes" : "Create Item"}
-            </Button>
-          </div>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
+            </>
+          )}
         </div>
 
         {/* Two-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
-          {/* Left column: form fields */}
+        <div className="grid grid-cols-1 lg:grid-cols-[750px_1fr] gap-6">
+          {/* Left column: form fields (narrow) */}
           <div className="space-y-6">
             <ItemBasicFields isEditMode={isEditMode} />
             <Separator />
@@ -283,7 +284,7 @@ export function ItemEditorForm({ initialItem }: ItemEditorFormProps) {
             )}
           </div>
 
-          {/* Right column: preview panels */}
+          {/* Right column: preview panels (expanded) */}
           <div className="space-y-6">
             <BudgetBar balanceConfig={balanceConfig ?? null} />
             <KotlinCodePanel />

@@ -8,10 +8,10 @@ import { Skeleton } from "@/components/ui/skeleton";
 export default function EditItemPage({
   params,
 }: {
-  params: Promise<{ id: string }>;
+  params: Promise<{ itemKey: string }>;
 }) {
-  const { id } = use(params);
-  const { data: item, isLoading, error } = useItem(id);
+  const { itemKey } = use(params);
+  const { data: item, isLoading, error } = useItem(itemKey);
 
   if (isLoading) {
     return (
@@ -20,7 +20,7 @@ export default function EditItemPage({
           <Skeleton className="h-8 w-64" />
           <Skeleton className="h-4 w-48" />
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-[1fr_400px] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[520px_1fr] gap-6">
           <div className="space-y-6">
             <Skeleton className="h-[400px] w-full" />
             <Skeleton className="h-[200px] w-full" />

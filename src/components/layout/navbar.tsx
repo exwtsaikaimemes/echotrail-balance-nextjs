@@ -5,10 +5,12 @@ import { usePathname } from "next/navigation";
 import { useSession, signOut } from "next-auth/react";
 import { cn } from "@/lib/utils";
 import { OnlineBadge } from "./online-badge";
-import { Sword, History, Settings, BookOpen, LogOut } from "lucide-react";
+import { Sword, GitCompareArrows, BarChart3, History, Settings, BookOpen, LogOut } from "lucide-react";
 
 const navLinks = [
   { href: "/items", label: "Items", icon: Sword },
+  { href: "/compare", label: "Compare", icon: GitCompareArrows },
+  { href: "/attributes", label: "Attributes", icon: BarChart3 },
   { href: "/history", label: "History", icon: History },
   { href: "/config", label: "Config", icon: Settings },
   { href: "/wiki", label: "Wiki", icon: BookOpen },

@@ -1,7 +1,13 @@
 "use client";
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getSocketId } from "@/components/providers/socket-provider";
 import type { Item } from "@/types/item";
+
+function socketHeader(): Record<string, string> {
+  const id = getSocketId();
+  return id ? { "X-Socket-Id": id } : {};
+}
 
 async function fetchItems(): Promise<Item[]> {
   const res = await fetch("/api/items");
@@ -10,8 +16,8 @@ async function fetchItems(): Promise<Item[]> {
   return data.items;
 }
 
-async function fetchItem(id: string): Promise<Item> {
-  const res = await fetch(`/api/items/${id}`);
+async function fetchItem(identifier: string): Promise<Item> {
+  const res = await fetch(`/api/items/${encodeURIComponent(identifier)}`);
   if (!res.ok) throw new Error("Failed to fetch item");
   const data = await res.json();
   return data.item;
@@ -21,11 +27,11 @@ export function useItems() {
   return useQuery({ queryKey: ["items"], queryFn: fetchItems });
 }
 
-export function useItem(id: string | undefined) {
+export function useItem(identifier: string | undefined) {
   return useQuery({
-    queryKey: ["item", id],
-    queryFn: () => fetchItem(id!),
-    enabled: !!id,
+    queryKey: ["item", identifier],
+    queryFn: () => fetchItem(identifier!),
+    enabled: !!identifier,
   });
 }
 
@@ -35,7 +41,7 @@ export function useCreateItem() {
     mutationFn: async (item: Partial<Item>) => {
       const res = await fetch("/api/items", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...socketHeader() },
         body: JSON.stringify({ item }),
       });
       if (!res.ok) {
@@ -56,7 +62,7 @@ export function useUpdateItem() {
     mutationFn: async ({ id, item }: { id: string; item: Partial<Item> }) => {
       const res = await fetch(`/api/items/${id}`, {
         method: "PUT",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...socketHeader() },
         body: JSON.stringify({ item }),
       });
       if (!res.ok) {
@@ -65,9 +71,9 @@ export function useUpdateItem() {
       }
       return res.json();
     },
-    onSuccess: (_, variables) => {
+    onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["items"] });
-      queryClient.invalidateQueries({ queryKey: ["item", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["item"] });
     },
   });
 }
@@ -76,7 +82,7 @@ export function useDeleteItem() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const res = await fetch(`/api/items/${id}`, { method: "DELETE" });
+      const res = await fetch(`/api/items/${id}`, { method: "DELETE", headers: socketHeader() });
       if (!res.ok) throw new Error("Delete failed");
     },
     onSuccess: () => {
@@ -89,7 +95,7 @@ export function useClearItems() {
   const queryClient = useQueryClient();
   return useMutation({
     mutationFn: async () => {
-      const res = await fetch("/api/items", { method: "DELETE" });
+      const res = await fetch("/api/items", { method: "DELETE", headers: socketHeader() });
       if (!res.ok) throw new Error("Clear failed");
     },
     onSuccess: () => {
@@ -106,6 +112,7 @@ export function useImportCSV() {
       formData.append("file", file);
       const res = await fetch("/api/items/import/csv", {
         method: "POST",
+        headers: socketHeader(),
         body: formData,
       });
       if (!res.ok) {
@@ -126,7 +133,7 @@ export function useImportWorkspace() {
     mutationFn: async (data: { items?: any[]; balanceConfig?: any }) => {
       const res = await fetch("/api/items/import/workspace", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", ...socketHeader() },
         body: JSON.stringify(data),
       });
       if (!res.ok) {

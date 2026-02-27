@@ -41,7 +41,7 @@ export async function PUT(request: NextRequest) {
 
     broadcast(
       { type: "balance:updated", balanceConfig: balanceConfig as any, by: session!.user.username },
-      session!.user.id
+      request.headers.get("x-socket-id") ?? undefined
     );
 
     return NextResponse.json({ balanceConfig });

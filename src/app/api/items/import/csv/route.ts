@@ -220,7 +220,7 @@ export async function POST(request: NextRequest) {
 
     broadcast(
       { type: "items:synced", items: allItems, by: session!.user.username },
-      session!.user.id
+      request.headers.get("x-socket-id") ?? undefined
     );
 
     return NextResponse.json({ items: allItems, count: parsed.length });

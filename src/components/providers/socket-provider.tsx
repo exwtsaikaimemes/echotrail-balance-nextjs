@@ -7,6 +7,9 @@ import { io, Socket } from "socket.io-client";
 import { toast } from "sonner";
 import type { WSEvent } from "@/types/ws-events";
 
+let _currentSocketId: string | null = null;
+export function getSocketId(): string | null { return _currentSocketId; }
+
 interface SocketContextType {
   onlineUsers: string[];
   onlineCount: number;
@@ -30,13 +33,19 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!session?.user) return;
 
-    const wsPort = process.env.NEXT_PUBLIC_WS_PORT || "3002";
-    const s = io(`http://localhost:${wsPort}`, {
+    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || `http://localhost:${process.env.NEXT_PUBLIC_WS_PORT || "3002"}`;
+    const s = io(wsUrl, {
       transports: ["websocket"],
       autoConnect: true,
+      reconnectionAttempts: 5,
+    });
+
+    s.on("connect_error", () => {
+      // Suppress unhandled connection errors (e.g. WS server not running)
     });
 
     s.on("connect", () => {
+      _currentSocketId = s.id ?? null;
       s.emit("auth", {
         userId: session.user.id,
         username: session.user.username,
@@ -58,7 +67,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       switch (event.type) {
         case "user:connected":
         case "user:disconnected":
-          setOnlineUsers(event.users);
+          setOnlineUsers([...new Set(event.users)]);
           break;
 
         case "item:created":
@@ -89,6 +98,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
         case "balance:updated":
           queryClient.invalidateQueries({ queryKey: ["balance"] });
+          queryClient.invalidateQueries({ queryKey: ["formulas"] });
           toast.info(`${event.by} updated balance config`);
           break;
 
@@ -105,6 +115,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       s.disconnect();
+      _currentSocketId = null;
       setSocket(null);
     };
   }, [session?.user, queryClient]);

@@ -3,6 +3,17 @@ import { getDefaultWeights, getDefaultAllowances, getDefaultAttributeDefs } from
 
 // ── Table Schemas ──
 
+const CREATE_BUDGET_FORMULAS_TABLE = `
+  CREATE TABLE IF NOT EXISTS echotrail_itemmanager_budget_formulas (
+    id          VARCHAR(36) PRIMARY KEY,
+    name        VARCHAR(64) NOT NULL UNIQUE,
+    expression  VARCHAR(255) NOT NULL,
+    description TEXT,
+    created_by  VARCHAR(32),
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+`;
+
 const CREATE_USERS_TABLE = `
   CREATE TABLE IF NOT EXISTS echotrail_itemmanager_users (
     id          VARCHAR(36) PRIMARY KEY,
@@ -131,6 +142,7 @@ export async function initializeDatabase(): Promise<void> {
   await pool.execute(CREATE_HISTORY_TABLE);
   await pool.execute(CREATE_COMMENTS_TABLE);
   await pool.execute(CREATE_BALANCE_CONFIG_TABLE);
+  await pool.execute(CREATE_BUDGET_FORMULAS_TABLE);
 
   // 2. Migration: add is_test column if missing
   const [isTestCols] = await pool.execute(
@@ -179,4 +191,37 @@ export async function initializeDatabase(): Promise<void> {
 
   // 5. Merge any new default weights/attr_defs into existing config
   await mergeNewDefaults();
+
+  // 6. Seed default budget formula if formulas table is empty
+  const [formulaRows] = await pool.execute(
+    "SELECT id FROM echotrail_itemmanager_budget_formulas LIMIT 1"
+  );
+  if ((formulaRows as unknown[]).length === 0) {
+    const { v4: uuidv4 } = await import("uuid");
+    await pool.execute(
+      "INSERT INTO echotrail_itemmanager_budget_formulas (id, name, expression, description, created_by) VALUES (?, ?, ?, ?, ?)",
+      [
+        uuidv4(),
+        "Flat",
+        "weight * max",
+        "Simple linear cost",
+        "system",
+      ]
+    );
+  }
+
+  // 7. Migration: update balance_config formula column from old enum keys to formula name
+  const [currentConfig] = await pool.execute(
+    "SELECT formula FROM echotrail_itemmanager_balance_config WHERE id = 1"
+  ) as any;
+  if (currentConfig.length > 0) {
+    const currentFormula = currentConfig[0].formula;
+    const oldEnumKeys = ["weight_x_max", "weight_x_avg", "weight_x_range", "flat_weight", "flat", "scaled", "linear"];
+    if (oldEnumKeys.includes(currentFormula)) {
+      await pool.execute(
+        "UPDATE echotrail_itemmanager_balance_config SET formula = ? WHERE id = 1",
+        ["Flat"]
+      );
+    }
+  }
 }

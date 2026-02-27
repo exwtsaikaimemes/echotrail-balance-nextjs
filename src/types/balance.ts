@@ -18,7 +18,17 @@ export type AttributeDefMap = Record<string, AttributeDef>;
 
 export interface BalanceConfig {
   formula: string;
+  formulaName?: string;
   weights: WeightMap;
   allowances: AllowanceMap;
   attributeDefs: AttributeDefMap;
+}
+
+export interface BudgetFormula {
+  id: string;
+  name: string;
+  expression: string;
+  description: string | null;
+  created_by: string | null;
+  created_at: string;
 }

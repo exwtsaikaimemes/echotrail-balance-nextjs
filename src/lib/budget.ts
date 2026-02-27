@@ -1,12 +1,34 @@
 import type { Item, ItemAttribute } from "@/types/item";
 import type { BalanceConfig, WeightMap, AllowanceMap } from "@/types/balance";
 import { getEquipClass } from "@/constants/equipment";
+import { evaluateFormula } from "./formula-eval";
 
-// ── Pure function: compute budget used by an item given weights and formula ──
+// ── Resolve a formula name to its expression ──
+// If the formula value looks like an expression (contains operators), use it directly.
+// Otherwise it's a formula name — callers should pass the resolved expression.
+
+export function computeAttrCost(
+  formulaExpression: string,
+  weight: number,
+  minVal: number,
+  maxVal: number,
+): number {
+  const vars = {
+    weight,
+    min: minVal,
+    max: maxVal,
+    avg: (minVal + maxVal) / 2,
+    range: maxVal - minVal,
+    value: maxVal,
+  };
+  return evaluateFormula(formulaExpression, vars);
+}
+
+// ── Pure function: compute budget used by an item given weights and formula expression ──
 
 export function computeBudgetUsedPure(
   attributes: ItemAttribute[],
-  formula: string,
+  formulaExpression: string,
   weights: WeightMap,
 ): number {
   let used = 0;
@@ -25,21 +47,7 @@ export function computeBudgetUsedPure(
 
       const minVal = parseFloat(b.min) || 0;
       const maxVal = parseFloat(b.max) || 0;
-
-      switch (formula) {
-        case "weight_x_max":
-          totalCost += weight * Math.max(Math.abs(minVal), Math.abs(maxVal));
-          break;
-        case "weight_x_avg":
-          totalCost += weight * Math.abs((minVal + maxVal) / 2);
-          break;
-        case "weight_x_range":
-          totalCost += weight * Math.abs(maxVal - minVal);
-          break;
-        case "flat_weight":
-          totalCost += weight;
-          break;
-      }
+      totalCost += computeAttrCost(formulaExpression, weight, minVal, maxVal);
     }
 
     used += Math.round(totalCost * 100) / 100;
@@ -74,6 +82,11 @@ export function computeItemBudget(
 ): BudgetBreakdown {
   const { formula, weights, allowances } = config;
 
+  // Resolve the formula: config.formula now stores the formula expression directly,
+  // or a formula name. For backward compatibility, if it doesn't contain operators,
+  // fall back to a simple "weight * max" default.
+  const formulaExpression = /[+\-*/^]/.test(formula) ? formula : "weight * max";
+
   const breakdown: Array<{ name: string; cost: number }> = [];
 
   for (const attr of item.attributes) {
@@ -90,21 +103,7 @@ export function computeItemBudget(
 
       const minVal = parseFloat(b.min) || 0;
       const maxVal = parseFloat(b.max) || 0;
-
-      switch (formula) {
-        case "weight_x_max":
-          totalCost += weight * Math.max(Math.abs(minVal), Math.abs(maxVal));
-          break;
-        case "weight_x_avg":
-          totalCost += weight * Math.abs((minVal + maxVal) / 2);
-          break;
-        case "weight_x_range":
-          totalCost += weight * Math.abs(maxVal - minVal);
-          break;
-        case "flat_weight":
-          totalCost += weight;
-          break;
-      }
+      totalCost += computeAttrCost(formulaExpression, weight, minVal, maxVal);
     }
 
     breakdown.push({ name: attr.name, cost: Math.round(totalCost * 100) / 100 });

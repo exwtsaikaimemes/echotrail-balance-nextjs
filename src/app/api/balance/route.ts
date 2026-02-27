@@ -3,6 +3,7 @@ import pool from "@/lib/db";
 import { requireAuth } from "@/lib/auth-guard";
 import { balanceConfigSchema } from "@/lib/validators";
 import { broadcast } from "@/lib/ws-broadcast";
+import { resolveFormulaExpression } from "@/lib/budget-server";
 
 function parseJSON(val: unknown): Record<string, unknown> {
   if (typeof val === "object" && val !== null) return val as Record<string, unknown>;
@@ -12,8 +13,12 @@ function parseJSON(val: unknown): Record<string, unknown> {
 async function getBalanceConfig() {
   const [rows] = await pool.execute("SELECT * FROM echotrail_itemmanager_balance_config WHERE id = 1") as any;
   const row = rows[0];
+
+  const formulaExpression = await resolveFormulaExpression(row.formula);
+
   return {
-    formula: row.formula,
+    formula: formulaExpression,
+    formulaName: row.formula,
     weights: parseJSON(row.weights),
     allowances: parseJSON(row.allowances),
     attributeDefs: parseJSON(row.attr_defs),
@@ -51,7 +56,7 @@ export async function PUT(request: NextRequest) {
         modified_by = ?, modified_at = NOW()
        WHERE id = 1`,
       [
-        cfg.formula || "weight_x_max",
+        cfg.formula || "Flat",
         JSON.stringify(cfg.weights || {}),
         JSON.stringify(cfg.allowances || {}),
         JSON.stringify(cfg.attributeDefs || {}),
@@ -62,7 +67,7 @@ export async function PUT(request: NextRequest) {
     const updated = await getBalanceConfig();
     broadcast(
       { type: "balance:updated", balanceConfig: updated as any, by: session!.user.username },
-      session!.user.id
+      request.headers.get("x-socket-id") ?? undefined
     );
 
     return NextResponse.json({ balanceConfig: updated });

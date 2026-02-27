@@ -99,7 +99,7 @@ export default function ConfigPage() {
 
         <TabsContent value="formula">
           <FormulaSelector
-            formula={balanceConfig.formula}
+            formula={balanceConfig.formulaName ?? balanceConfig.formula}
           />
         </TabsContent>
 

@@ -1,6 +1,6 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 import pool from "./db";
 
 export const authOptions: NextAuthOptions = {
@@ -12,20 +12,25 @@ export const authOptions: NextAuthOptions = {
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        if (!credentials?.username || !credentials?.password) return null;
+        try {
+          if (!credentials?.username || !credentials?.password) return null;
 
-        const [rows] = await pool.execute(
-          'SELECT id, username, password, role FROM echotrail_itemmanager_users WHERE username = ?',
-          [credentials.username]
-        ) as any;
+          const [rows] = await pool.execute(
+            'SELECT id, username, password, role FROM echotrail_itemmanager_users WHERE username = ?',
+            [credentials.username]
+          ) as any;
 
-        if (rows.length === 0) return null;
+          if (rows.length === 0) return null;
 
-        const user = rows[0];
-        const match = await bcrypt.compare(credentials.password, user.password);
-        if (!match) return null;
+          const user = rows[0];
+          const match = await bcrypt.compare(credentials.password, user.password);
+          if (!match) return null;
 
-        return { id: user.id, name: user.username, role: user.role || 'user' };
+          return { id: user.id, name: user.username, role: user.role || 'user' };
+        } catch (err) {
+          console.error("Auth error:", err);
+          return null;
+        }
       },
     }),
   ],

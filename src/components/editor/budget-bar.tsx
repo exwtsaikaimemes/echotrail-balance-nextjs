@@ -12,9 +12,10 @@ import { cn } from "@/lib/utils";
 
 interface BudgetBarProps {
   balanceConfig: BalanceConfig | null;
+  showBreakdown?: boolean;
 }
 
-export function BudgetBar({ balanceConfig }: BudgetBarProps) {
+export function BudgetBar({ balanceConfig, showBreakdown = true }: BudgetBarProps) {
   const { watch } = useFormContext<Item>();
   const attributes = watch("attributes");
   const rarity = watch("rarity");
@@ -88,7 +89,7 @@ export function BudgetBar({ balanceConfig }: BudgetBarProps) {
         </div>
 
         {/* Breakdown */}
-        {budget.breakdown.length > 0 && (
+        {showBreakdown && budget.breakdown.length > 0 && (
           <>
             <Separator />
             <div className="space-y-1">
@@ -97,9 +98,9 @@ export function BudgetBar({ balanceConfig }: BudgetBarProps) {
               </p>
               <ScrollArea className="max-h-[200px]">
                 <div className="space-y-1">
-                  {budget.breakdown.map((entry) => (
+                  {budget.breakdown.map((entry, index) => (
                     <div
-                      key={entry.name}
+                      key={`${entry.name}-${index}`}
                       className="flex items-center justify-between py-1 px-1 text-xs"
                     >
                       <span className="font-mono text-muted-foreground truncate max-w-[200px]">

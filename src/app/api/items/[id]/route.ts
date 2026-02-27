@@ -4,10 +4,13 @@ import { requireAuth } from "@/lib/auth-guard";
 import { dbRowToItem, itemToDbParams, recordHistory } from "@/lib/db-mappers";
 import { computeBudgetUsedFromDB } from "@/lib/budget-server";
 import { broadcast, broadcastToAll } from "@/lib/ws-broadcast";
+import { itemSchema } from "@/lib/validators";
 
 interface RouteParams {
   params: Promise<{ id: string }>;
 }
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 export async function GET(request: NextRequest, { params }: RouteParams) {
   const { error, session: _session } = await requireAuth();
@@ -15,8 +18,11 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 
   const { id } = await params;
 
+  const isUUID = UUID_RE.test(id);
   const [rows] = await pool.execute(
-    "SELECT * FROM echotrail_itemmanager_items WHERE id = ?",
+    isUUID
+      ? "SELECT * FROM echotrail_itemmanager_items WHERE id = ?"
+      : "SELECT * FROM echotrail_itemmanager_items WHERE item_key = ?",
     [id]
   ) as any;
 
@@ -43,6 +49,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const parsed = itemSchema.safeParse(item);
+    if (!parsed.success) {
+      return NextResponse.json(
+        { error: parsed.error.issues[0].message },
+        { status: 400 }
+      );
+    }
+    const validatedItem = parsed.data;
+
     // Fetch the existing item (before snapshot)
     const [existing] = await pool.execute(
       "SELECT * FROM echotrail_itemmanager_items WHERE id = ?",
@@ -56,7 +71,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const beforeItem = dbRowToItem(existing[0]);
     const budgetBefore = await computeBudgetUsedFromDB(beforeItem);
 
-    const dbParams = itemToDbParams({ ...item, id }, session!.user.username);
+    const dbParams = itemToDbParams({ ...validatedItem, id }, session!.user.username);
 
     await pool.execute(
       `UPDATE echotrail_itemmanager_items SET
@@ -103,7 +118,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 
     broadcast(
       { type: "item:updated", item: updatedItem, by: session!.user.username },
-      session!.user.id
+      request.headers.get("x-socket-id") ?? undefined
     );
     broadcastToAll({
       type: "history:new",
@@ -173,7 +188,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
 
   broadcast(
     { type: "item:deleted", itemId: id, by: session!.user.username },
-    session!.user.id
+    request.headers.get("x-socket-id") ?? undefined
   );
   broadcastToAll({
     type: "history:new",

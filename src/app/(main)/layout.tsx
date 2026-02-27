@@ -8,7 +8,7 @@ export default function MainLayout({
   return (
     <div className="min-h-screen bg-background">
       <Navbar />
-      <main className="p-4">{children}</main>
+      <main className="px-5 py-6">{children}</main>
     </div>
   );
 }

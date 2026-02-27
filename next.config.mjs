@@ -14,9 +14,7 @@ const nextConfig = {
       ],
     },
   ],
-  experimental: {
-    serverComponentsExternalPackages: ["mysql2", "bcrypt"],
-  },
+  serverExternalPackages: ["mysql2"],
 };
 
 export default nextConfig;

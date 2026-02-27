@@ -1,6 +1,6 @@
 "use client";
 
-import { useFormContext } from "react-hook-form";
+import { Controller, useFormContext } from "react-hook-form";
 import type { Item } from "@/types/item";
 import { EQUIPMENT_TYPES } from "@/constants/equipment";
 import { RARITIES } from "@/constants/rarities";
@@ -22,10 +22,7 @@ interface ItemBasicFieldsProps {
 }
 
 export function ItemBasicFields({ isEditMode }: ItemBasicFieldsProps) {
-  const { register, setValue, watch } = useFormContext<Item>();
-
-  const equipment = watch("equipment");
-  const rarity = watch("rarity");
+  const { register, control } = useFormContext<Item>();
 
   return (
     <Card>
@@ -81,50 +78,52 @@ export function ItemBasicFields({ isEditMode }: ItemBasicFieldsProps) {
           {/* Equipment Type */}
           <div className="space-y-2">
             <Label>Equipment Type</Label>
-            <Select
-              value={equipment}
-              onValueChange={(value) =>
-                setValue("equipment", value, { shouldDirty: true })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select equipment type" />
-              </SelectTrigger>
-              <SelectContent>
-                {EQUIPMENT_TYPES.map((group) => (
-                  <SelectGroup key={group.group}>
-                    <SelectLabel>{group.group}</SelectLabel>
-                    {group.items.map((item) => (
-                      <SelectItem key={item} value={item}>
-                        {item}
-                      </SelectItem>
+            <Controller
+              name="equipment"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select equipment type" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {EQUIPMENT_TYPES.map((group) => (
+                      <SelectGroup key={group.group}>
+                        <SelectLabel>{group.group}</SelectLabel>
+                        {group.items.map((item) => (
+                          <SelectItem key={item} value={item}>
+                            {item}
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
                     ))}
-                  </SelectGroup>
-                ))}
-              </SelectContent>
-            </Select>
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           {/* Rarity */}
           <div className="space-y-2">
             <Label>Rarity</Label>
-            <Select
-              value={rarity}
-              onValueChange={(value) =>
-                setValue("rarity", value, { shouldDirty: true })
-              }
-            >
-              <SelectTrigger>
-                <SelectValue placeholder="Select rarity" />
-              </SelectTrigger>
-              <SelectContent>
-                {RARITIES.map((r) => (
-                  <SelectItem key={r.name} value={r.name}>
-                    {r.name} (Tier {r.tier})
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+            <Controller
+              name="rarity"
+              control={control}
+              render={({ field }) => (
+                <Select value={field.value} onValueChange={field.onChange}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select rarity" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {RARITIES.map((r) => (
+                      <SelectItem key={r.name} value={r.name}>
+                        {r.name} (Tier {r.tier})
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+            />
           </div>
 
           {/* Custom Model Data */}

@@ -6,6 +6,17 @@ import { computeBudgetUsedPure } from "./budget";
 
 // ── Server-side: read balance config from DB, compute budget used ──
 
+export async function resolveFormulaExpression(formulaName: string): Promise<string> {
+  const [rows] = await pool.execute(
+    "SELECT expression FROM echotrail_itemmanager_budget_formulas WHERE name = ?",
+    [formulaName]
+  ) as any;
+  if (rows.length > 0) return rows[0].expression;
+  // Fallback: if the value is already an expression (contains operators), return as-is
+  if (/[+\-*/^]/.test(formulaName)) return formulaName;
+  return "weight * max";
+}
+
 export async function computeBudgetUsedFromDB(
   item: Pick<Item, "attributes">,
 ): Promise<number> {
@@ -20,5 +31,6 @@ export async function computeBudgetUsedFromDB(
   const weights: WeightMap =
     typeof row.weights === "string" ? JSON.parse(row.weights) : row.weights;
 
-  return computeBudgetUsedPure(item.attributes, formula, weights);
+  const formulaExpression = await resolveFormulaExpression(formula);
+  return computeBudgetUsedPure(item.attributes, formulaExpression, weights);
 }

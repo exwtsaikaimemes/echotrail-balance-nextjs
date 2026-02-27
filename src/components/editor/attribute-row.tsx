@@ -11,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { computeAttrCost } from "@/lib/budget";
 
 interface AttributeRowProps {
   index: number;
@@ -37,9 +38,10 @@ export function AttributeRow({
   const cost = useMemo(() => {
     if (bypassBP || !balanceConfig) return 0;
 
-    let totalCost = 0;
     const formula = balanceConfig.formula;
+    const formulaExpression = /[+\-*/^]/.test(formula) ? formula : "weight * max";
 
+    let totalCost = 0;
     for (const b of bounds) {
       if (b.type === "String") {
         totalCost += weight;
@@ -47,21 +49,7 @@ export function AttributeRow({
       }
       const minVal = parseFloat(b.min) || 0;
       const maxVal = parseFloat(b.max) || 0;
-
-      switch (formula) {
-        case "weight_x_max":
-          totalCost += weight * Math.max(Math.abs(minVal), Math.abs(maxVal));
-          break;
-        case "weight_x_avg":
-          totalCost += weight * Math.abs((minVal + maxVal) / 2);
-          break;
-        case "weight_x_range":
-          totalCost += weight * Math.abs(maxVal - minVal);
-          break;
-        case "flat_weight":
-          totalCost += weight;
-          break;
-      }
+      totalCost += computeAttrCost(formulaExpression, weight, minVal, maxVal);
     }
 
     return Math.round(totalCost * 100) / 100;

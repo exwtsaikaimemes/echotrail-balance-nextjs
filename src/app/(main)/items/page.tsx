@@ -1,18 +1,23 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
+import Link from "next/link";
 import { useItems } from "@/hooks/use-items";
 import { useBalanceConfig } from "@/hooks/use-balance";
 import { useCommentCounts } from "@/hooks/use-comments";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useCookieState } from "@/hooks/use-cookie-state";
 import { ItemTableToolbar } from "@/components/browser/item-table-toolbar";
 import { ItemTable } from "@/components/browser/item-table";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { Item } from "@/types/item";
 import { getEquipClass } from "@/constants/equipment";
+import { GitCompareArrows } from "lucide-react";
 
 export type SortField =
   | "name"
+  | "id"
   | "rarity"
   | "equipment"
   | "budget"
@@ -41,8 +46,21 @@ export default function ItemsPage() {
   const [rarityFilter, setRarityFilter] = useState<string>("ALL");
   const [equipmentFilter, setEquipmentFilter] = useState<string>("ALL");
   const [testFilter, setTestFilter] = useState<TestFilter>("all");
-  const [sortField, setSortField] = useState<SortField>("name");
-  const [sortDirection, setSortDirection] = useState<SortDirection>("asc");
+  const [sortField, setSortField] = useCookieState<SortField>("sort-field", "name");
+  const [sortDirection, setSortDirection] = useCookieState<SortDirection>("sort-dir", "asc");
+  const [compareSelection, setCompareSelection] = useState<Set<string>>(new Set());
+
+  const handleToggleCompare = useCallback((itemKey: string) => {
+    setCompareSelection((prev) => {
+      const next = new Set(prev);
+      if (next.has(itemKey)) {
+        next.delete(itemKey);
+      } else if (next.size < 2) {
+        next.add(itemKey);
+      }
+      return next;
+    });
+  }, []);
 
   const debouncedSearch = useDebounce(searchQuery, 300);
 
@@ -88,6 +106,9 @@ export default function ItemsPage() {
       switch (sortField) {
         case "name":
           comparison = a.customName.localeCompare(b.customName);
+          break;
+        case "id":
+          comparison = a.itemKey.localeCompare(b.itemKey);
           break;
         case "rarity":
           comparison =
@@ -151,6 +172,23 @@ export default function ItemsPage() {
               : "Loading items..."}
           </p>
         </div>
+        <div className="flex items-center gap-2">
+          {compareSelection.size === 1 && (
+            <span className="text-sm text-muted-foreground">
+              Select 1 more to compare
+            </span>
+          )}
+          {compareSelection.size === 2 && (
+            <Button asChild size="sm">
+              <Link
+                href={`/compare?a=${[...compareSelection][0]}&b=${[...compareSelection][1]}`}
+              >
+                <GitCompareArrows className="mr-2 h-4 w-4" />
+                Compare Selected
+              </Link>
+            </Button>
+          )}
+        </div>
       </div>
 
       <ItemTableToolbar
@@ -180,6 +218,8 @@ export default function ItemsPage() {
           sortField={sortField}
           sortDirection={sortDirection}
           onSort={handleSort}
+          compareSelection={compareSelection}
+          onToggleCompare={handleToggleCompare}
         />
       )}
     </div>

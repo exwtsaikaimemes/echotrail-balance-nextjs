@@ -6,73 +6,89 @@ import type { Item } from "@/types/item";
 import { generateKotlinCode } from "@/lib/kotlin-codegen";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { Check, Clipboard } from "lucide-react";
 
+const KEYWORDS = new Set([
+  "package", "import", "object", "class", "val", "var", "fun",
+  "override", "true", "false", "to", "listOf", "mapOf",
+]);
+
+function escapeHtml(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
 /**
- * Naive Kotlin syntax highlighting using the CSS classes from globals.css.
- * Wraps recognized tokens in <span> elements.
+ * Single-pass Kotlin syntax highlighter.
+ * Scans the source left-to-right, classifying each token before emitting HTML.
+ * Because no regex ever sees previously-emitted HTML, the "class" keyword
+ * corruption bug is structurally impossible.
  */
 function highlightKotlin(code: string): string {
-  const keywords = [
-    "package",
-    "import",
-    "object",
-    "class",
-    "val",
-    "var",
-    "fun",
-    "override",
-    "true",
-    "false",
-    "to",
-    "listOf",
-    "mapOf",
-  ];
+  const out: string[] = [];
+  let i = 0;
+  const len = code.length;
 
-  let escaped = code
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;");
+  while (i < len) {
+    // --- String literal: "..." with escaped quotes ---
+    if (code[i] === '"') {
+      let j = i + 1;
+      while (j < len && code[j] !== '"') {
+        if (code[j] === '\\') j++; // skip escaped char
+        j++;
+      }
+      if (j < len) j++; // include closing quote
+      out.push(`<span class="syntax-string">${escapeHtml(code.slice(i, j))}</span>`);
+      i = j;
+      continue;
+    }
 
-  // Strings
-  escaped = escaped.replace(
-    /("(?:[^"\\]|\\.)*")/g,
-    '<span class="syntax-string">$1</span>'
-  );
+    // --- Line comment: // to end of line ---
+    if (code[i] === '/' && i + 1 < len && code[i + 1] === '/') {
+      let j = i + 2;
+      while (j < len && code[j] !== '\n') j++;
+      out.push(`<span class="syntax-comment">${escapeHtml(code.slice(i, j))}</span>`);
+      i = j;
+      continue;
+    }
 
-  // Comments
-  escaped = escaped.replace(
-    /(\/\/.*)/g,
-    '<span class="syntax-comment">$1</span>'
-  );
+    // --- Number literal ---
+    if (
+      code[i] >= '0' && code[i] <= '9' &&
+      (i === 0 || !/[a-zA-Z_]/.test(code[i - 1]))
+    ) {
+      let j = i;
+      while (j < len && code[j] >= '0' && code[j] <= '9') j++;
+      if (j < len && code[j] === '.') {
+        j++;
+        while (j < len && code[j] >= '0' && code[j] <= '9') j++;
+      }
+      out.push(`<span class="syntax-number">${escapeHtml(code.slice(i, j))}</span>`);
+      i = j;
+      continue;
+    }
 
-  // Numbers (standalone numeric literals)
-  escaped = escaped.replace(
-    /\b(\d+\.?\d*)\b/g,
-    '<span class="syntax-number">$1</span>'
-  );
+    // --- Identifier / keyword ---
+    if (/[a-zA-Z_]/.test(code[i])) {
+      let j = i;
+      while (j < len && /[\w]/.test(code[j])) j++;
+      const word = code.slice(i, j);
+      if (KEYWORDS.has(word)) {
+        out.push(`<span class="syntax-keyword">${escapeHtml(word)}</span>`);
+      } else if (/^[A-Z][a-zA-Z]+$/.test(word)) {
+        out.push(`<span class="syntax-type">${escapeHtml(word)}</span>`);
+      } else {
+        out.push(escapeHtml(word));
+      }
+      i = j;
+      continue;
+    }
 
-  // Keywords
-  for (const kw of keywords) {
-    const regex = new RegExp(`\\b(${kw})\\b`, "g");
-    escaped = escaped.replace(
-      regex,
-      '<span class="syntax-keyword">$1</span>'
-    );
+    // --- Any other character ---
+    out.push(escapeHtml(code[i]));
+    i++;
   }
 
-  // Type references (PascalCase words)
-  escaped = escaped.replace(
-    /\b([A-Z][a-zA-Z]+)\b/g,
-    (match, p1) => {
-      // Don't double-wrap already-highlighted tokens
-      if (match.includes("syntax-")) return match;
-      return `<span class="syntax-type">${p1}</span>`;
-    }
-  );
-
-  return escaped;
+  return out.join("");
 }
 
 export function KotlinCodePanel() {
@@ -127,14 +143,14 @@ export function KotlinCodePanel() {
         </Button>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="max-h-[400px] w-full">
-          <pre className="rounded-lg bg-[#0d1117] p-4 overflow-x-auto">
+        <div className="max-h-[600px] overflow-y-auto overflow-x-auto rounded-lg bg-[#0d1117]">
+          <pre className="p-4">
             <code
               className="text-xs font-mono leading-relaxed"
               dangerouslySetInnerHTML={{ __html: highlighted }}
             />
           </pre>
-        </ScrollArea>
+        </div>
       </CardContent>
     </Card>
   );

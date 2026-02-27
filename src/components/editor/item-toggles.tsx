@@ -2,7 +2,7 @@
 
 import { useFormContext } from "react-hook-form";
 import type { Item } from "@/types/item";
-import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
@@ -22,14 +22,19 @@ function ToggleRow({
   onCheckedChange,
 }: ToggleRowProps) {
   return (
-    <div className="flex items-center justify-between rounded-lg border p-3">
+    <div className="flex items-start gap-3 rounded-lg border p-3">
+      <Checkbox
+        id={id}
+        checked={checked}
+        onCheckedChange={(v) => onCheckedChange(!!v)}
+        className="mt-0.5"
+      />
       <div className="space-y-0.5">
         <Label htmlFor={id} className="text-sm font-medium cursor-pointer">
           {label}
         </Label>
         <p className="text-xs text-muted-foreground">{description}</p>
       </div>
-      <Switch id={id} checked={checked} onCheckedChange={onCheckedChange} />
     </div>
   );
 }
@@ -49,18 +54,18 @@ export function ItemToggles() {
       <CardHeader>
         <CardTitle className="text-lg">Flags</CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-3">
         <ToggleRow
           id="isTest"
           label="Test Item"
-          description="Mark this item as a test/development item. It will not appear in production drops."
+          description="Won't appear in production drops"
           checked={isTest}
           onCheckedChange={(v) => setValue("isTest", v, { shouldDirty: true })}
         />
         <ToggleRow
           id="usesBaseStats"
           label="Uses Base Stats"
-          description="Whether this item inherits base stats from its equipment type."
+          description="Inherits stats from equipment type"
           checked={usesBaseStats}
           onCheckedChange={(v) =>
             setValue("usesBaseStats", v, { shouldDirty: true })
@@ -69,7 +74,7 @@ export function ItemToggles() {
         <ToggleRow
           id="canDrop"
           label="Can Drop"
-          description="Whether this item can drop as a reward from dungeon bosses."
+          description="Can drop from dungeon bosses"
           checked={canDrop}
           onCheckedChange={(v) =>
             setValue("canDrop", v, { shouldDirty: true })
@@ -78,7 +83,7 @@ export function ItemToggles() {
         <ToggleRow
           id="secretItem"
           label="Secret Item"
-          description="Hidden from the public item list. Only discoverable in-game."
+          description="Hidden from public item list"
           checked={secretItem}
           onCheckedChange={(v) =>
             setValue("secretItem", v, { shouldDirty: true })
@@ -87,20 +92,22 @@ export function ItemToggles() {
         <ToggleRow
           id="isOffHand"
           label="Off Hand"
-          description="This item is held in the off-hand slot."
+          description="Held in off-hand slot"
           checked={isOffHand}
-          onCheckedChange={(v) =>
-            setValue("isOffHand", v, { shouldDirty: true })
-          }
+          onCheckedChange={(v) => {
+            setValue("isOffHand", v, { shouldDirty: true });
+            if (v) setValue("isBothHands", false, { shouldDirty: true });
+          }}
         />
         <ToggleRow
           id="isBothHands"
           label="Both Hands"
-          description="This item requires both hands (prevents off-hand items)."
+          description="Requires both hands"
           checked={isBothHands}
-          onCheckedChange={(v) =>
-            setValue("isBothHands", v, { shouldDirty: true })
-          }
+          onCheckedChange={(v) => {
+            setValue("isBothHands", v, { shouldDirty: true });
+            if (v) setValue("isOffHand", false, { shouldDirty: true });
+          }}
         />
       </CardContent>
     </Card>

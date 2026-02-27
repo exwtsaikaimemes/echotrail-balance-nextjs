@@ -166,7 +166,7 @@ export async function POST(request: NextRequest) {
           },
           by: session!.user.username,
         },
-        session!.user.id
+        request.headers.get("x-socket-id") ?? undefined
       );
     }
 
@@ -178,7 +178,7 @@ export async function POST(request: NextRequest) {
 
     broadcast(
       { type: "items:synced", items: allItems, by: session!.user.username },
-      session!.user.id
+      request.headers.get("x-socket-id") ?? undefined
     );
 
     const [balRows] = await pool.execute(
