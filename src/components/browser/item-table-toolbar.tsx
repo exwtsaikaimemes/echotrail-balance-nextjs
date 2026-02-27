@@ -76,9 +76,9 @@ export function ItemTableToolbar({
   return (
     <>
       <div className="flex flex-col gap-3">
-        {/* Top row: Search + New Item */}
-        <div className="flex items-center gap-3">
-          <div className="relative flex-1 max-w-sm">
+        {/* Top row: Search + Filters + New Item */}
+        <div className="flex flex-wrap items-center gap-3">
+          <div className="relative flex-1 min-w-[180px] md:max-w-sm">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search items..."
@@ -89,7 +89,7 @@ export function ItemTableToolbar({
           </div>
 
           <Select value={rarityFilter} onValueChange={onRarityChange}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-full sm:w-[150px]">
               <SelectValue placeholder="Rarity" />
             </SelectTrigger>
             <SelectContent>
@@ -109,7 +109,7 @@ export function ItemTableToolbar({
           </Select>
 
           <Select value={equipmentFilter} onValueChange={onEquipmentChange}>
-            <SelectTrigger className="w-[150px]">
+            <SelectTrigger className="w-full sm:w-[150px]">
               <SelectValue placeholder="Equipment" />
             </SelectTrigger>
             <SelectContent>
@@ -126,7 +126,7 @@ export function ItemTableToolbar({
             value={testFilter}
             onValueChange={(v) => onTestFilterChange(v as TestFilter)}
           >
-            <SelectTrigger className="w-[130px]">
+            <SelectTrigger className="w-full sm:w-[130px]">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
@@ -136,9 +136,9 @@ export function ItemTableToolbar({
             </SelectContent>
           </Select>
 
-          <div className="flex-1" />
+          <div className="hidden sm:block flex-1" />
 
-          <Button asChild>
+          <Button asChild className="w-full sm:w-auto">
             <Link href="/items/new">
               <Plus className="h-4 w-4" />
               New Item
@@ -147,7 +147,7 @@ export function ItemTableToolbar({
         </div>
 
         {/* Bottom row: Import/Export actions */}
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="outline"
             size="sm"

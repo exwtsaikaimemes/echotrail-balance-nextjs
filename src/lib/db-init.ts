@@ -79,6 +79,17 @@ const CREATE_COMMENTS_TABLE = `
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 `;
 
+const CREATE_PATCH_VERSIONS_TABLE = `
+  CREATE TABLE IF NOT EXISTS echotrail_itemmanager_patch_versions (
+    id          INT AUTO_INCREMENT PRIMARY KEY,
+    version     VARCHAR(32) NOT NULL UNIQUE,
+    description TEXT,
+    is_current  TINYINT NOT NULL DEFAULT 0,
+    created_by  VARCHAR(32),
+    created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+`;
+
 const CREATE_BALANCE_CONFIG_TABLE = `
   CREATE TABLE IF NOT EXISTS echotrail_itemmanager_balance_config (
     id          INT PRIMARY KEY,
@@ -143,6 +154,7 @@ export async function initializeDatabase(): Promise<void> {
   await pool.execute(CREATE_COMMENTS_TABLE);
   await pool.execute(CREATE_BALANCE_CONFIG_TABLE);
   await pool.execute(CREATE_BUDGET_FORMULAS_TABLE);
+  await pool.execute(CREATE_PATCH_VERSIONS_TABLE);
 
   // 2. Migration: add is_test column if missing
   const [isTestCols] = await pool.execute(
@@ -210,7 +222,51 @@ export async function initializeDatabase(): Promise<void> {
     );
   }
 
-  // 7. Migration: update balance_config formula column from old enum keys to formula name
+  // 7. Migration: add patch_version column to history table if missing
+  const [patchVersionCols] = await pool.execute(
+    `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'echotrail_itemmanager_item_history'
+       AND COLUMN_NAME = 'patch_version'`
+  );
+  if ((patchVersionCols as unknown[]).length === 0) {
+    await pool.execute(
+      "ALTER TABLE echotrail_itemmanager_item_history ADD COLUMN patch_version VARCHAR(32) DEFAULT NULL AFTER snapshot_after"
+    );
+    await pool.execute(
+      "UPDATE echotrail_itemmanager_item_history SET patch_version = 'Pre-3.0.0' WHERE patch_version IS NULL"
+    );
+  }
+
+  // 8. Seed patch versions if empty
+  const [patchVersionRows] = await pool.execute(
+    "SELECT id FROM echotrail_itemmanager_patch_versions LIMIT 1"
+  );
+  if ((patchVersionRows as unknown[]).length === 0) {
+    await pool.execute(
+      "INSERT INTO echotrail_itemmanager_patch_versions (version, description, is_current, created_by) VALUES (?, ?, 0, ?)",
+      ["Pre-3.0.0", "Changes made before the patch notes system was introduced.", "system"]
+    );
+    await pool.execute(
+      "INSERT INTO echotrail_itemmanager_patch_versions (version, description, is_current, created_by) VALUES (?, ?, 1, ?)",
+      ["3.0.0", null, "system"]
+    );
+  }
+
+  // 9. Migration: add is_hidden column to history table if missing
+  const [isHiddenCols] = await pool.execute(
+    `SELECT COLUMN_NAME FROM INFORMATION_SCHEMA.COLUMNS
+     WHERE TABLE_SCHEMA = DATABASE()
+       AND TABLE_NAME = 'echotrail_itemmanager_item_history'
+       AND COLUMN_NAME = 'is_hidden'`
+  );
+  if ((isHiddenCols as unknown[]).length === 0) {
+    await pool.execute(
+      "ALTER TABLE echotrail_itemmanager_item_history ADD COLUMN is_hidden TINYINT NOT NULL DEFAULT 0 AFTER patch_version"
+    );
+  }
+
+  // 10. Migration: update balance_config formula column from old enum keys to formula name
   const [currentConfig] = await pool.execute(
     "SELECT formula FROM echotrail_itemmanager_balance_config WHERE id = 1"
   ) as any;

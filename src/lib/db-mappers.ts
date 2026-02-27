@@ -99,10 +99,16 @@ export async function recordHistory(
   budgetBefore: number | null | undefined,
   budgetAfter: number | null | undefined,
 ): Promise<void> {
+  // Resolve the current patch version
+  const [pvRows] = await pool.execute(
+    "SELECT version FROM echotrail_itemmanager_patch_versions WHERE is_current = 1 LIMIT 1"
+  ) as any;
+  const patchVersion: string | null = pvRows.length > 0 ? pvRows[0].version : null;
+
   await pool.execute(
     `INSERT INTO echotrail_itemmanager_item_history
-      (item_id, item_key, item_name, change_type, changed_by, budget_before, budget_after, snapshot_before, snapshot_after)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      (item_id, item_key, item_name, change_type, changed_by, budget_before, budget_after, snapshot_before, snapshot_after, patch_version)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       itemId,
       itemKey,
@@ -113,6 +119,7 @@ export async function recordHistory(
       budgetAfter !== null && budgetAfter !== undefined ? budgetAfter : null,
       snapshotBefore ? JSON.stringify(snapshotBefore) : null,
       snapshotAfter ? JSON.stringify(snapshotAfter) : null,
+      patchVersion,
     ]
   );
 }

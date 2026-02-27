@@ -262,6 +262,9 @@ export function ItemEditorForm({ initialItem }: ItemEditorFormProps) {
           )}
         </div>
 
+        {/* Budget bar — full width above both columns */}
+        <BudgetBar balanceConfig={balanceConfig ?? null} />
+
         {/* Two-column layout */}
         <div className="grid grid-cols-1 lg:grid-cols-[550px_830px] gap-3">
           {/* Left column: form fields (narrow) */}
@@ -286,7 +289,6 @@ export function ItemEditorForm({ initialItem }: ItemEditorFormProps) {
 
           {/* Right column: preview panels (expanded) */}
           <div className="space-y-6">
-            <BudgetBar balanceConfig={balanceConfig ?? null} />
             <KotlinCodePanel />
             <TooltipPreview />
 

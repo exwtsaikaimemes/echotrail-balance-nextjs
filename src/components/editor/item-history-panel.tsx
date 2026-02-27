@@ -6,8 +6,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Loader2, History } from "lucide-react";
+import { Loader2, History, TrendingUp, TrendingDown, ArrowLeftRight } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { classifyUpdate } from "@/lib/diff-utils";
 
 interface ItemHistoryPanelProps {
   itemId: string;
@@ -29,15 +30,26 @@ function formatTimestamp(dateStr: string): string {
 
 const CHANGE_TYPE_CONFIG: Record<
   string,
-  { label: string; className: string }
+  { label: string; className: string; icon?: React.ElementType }
 > = {
   created: {
     label: "Created",
     className: "bg-green-600/20 text-green-400 border-green-600/30",
   },
-  updated: {
-    label: "Updated",
+  buffed: {
+    label: "Buffed",
+    className: "bg-green-600/20 text-green-400 border-green-600/30",
+    icon: TrendingUp,
+  },
+  nerfed: {
+    label: "Nerfed",
+    className: "bg-red-600/20 text-red-400 border-red-600/30",
+    icon: TrendingDown,
+  },
+  adjusted: {
+    label: "Adjusted",
     className: "bg-blue-600/20 text-blue-400 border-blue-600/30",
+    icon: ArrowLeftRight,
   },
   deleted: {
     label: "Deleted",
@@ -87,9 +99,13 @@ export function ItemHistoryPanel({ itemId }: ItemHistoryPanelProps) {
           <ScrollArea className="max-h-[350px]">
             <div className="space-y-2">
               {entries.map((entry) => {
+                const displayType = entry.changeType === "updated"
+                  ? classifyUpdate(entry.budgetBefore, entry.budgetAfter)
+                  : entry.changeType;
                 const typeConfig =
-                  CHANGE_TYPE_CONFIG[entry.changeType] ??
-                  CHANGE_TYPE_CONFIG.updated;
+                  CHANGE_TYPE_CONFIG[displayType] ??
+                  CHANGE_TYPE_CONFIG.adjusted;
+                const TypeIcon = typeConfig.icon;
 
                 const budgetDelta =
                   entry.budgetAfter != null && entry.budgetBefore != null
@@ -109,6 +125,7 @@ export function ItemHistoryPanel({ itemId }: ItemHistoryPanelProps) {
                           variant="outline"
                           className={cn("text-[10px]", typeConfig.className)}
                         >
+                          {TypeIcon && <TypeIcon className="h-3 w-3 mr-1" />}
                           {typeConfig.label}
                         </Badge>
                         <span className="text-xs font-medium">

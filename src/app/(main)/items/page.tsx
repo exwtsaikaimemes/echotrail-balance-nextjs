@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { useItems } from "@/hooks/use-items";
+import { useItems, useItemPatchStatuses } from "@/hooks/use-items";
 import { useBalanceConfig } from "@/hooks/use-balance";
 import { useCommentCounts } from "@/hooks/use-comments";
 import { useDebounce } from "@/hooks/use-debounce";
@@ -23,7 +23,8 @@ export type SortField =
   | "budget"
   | "attributes"
   | "enchantments"
-  | "comments";
+  | "comments"
+  | "patch";
 export type SortDirection = "asc" | "desc";
 export type TestFilter = "all" | "test" | "live";
 
@@ -41,6 +42,7 @@ export default function ItemsPage() {
   const { data: items, isLoading: itemsLoading } = useItems();
   const { data: balanceConfig, isLoading: balanceLoading } = useBalanceConfig();
   const { data: commentCounts } = useCommentCounts();
+  const { data: patchStatuses } = useItemPatchStatuses();
 
   const [searchQuery, setSearchQuery] = useState("");
   const [rarityFilter, setRarityFilter] = useState<string>("ALL");
@@ -133,6 +135,13 @@ export default function ItemsPage() {
           comparison = aCount - bCount;
           break;
         }
+        case "patch": {
+          const patchRank: Record<string, number> = { new: 4, buffed: 3, nerfed: 2, adjusted: 1 };
+          const aRank = patchRank[patchStatuses?.[a.id] ?? ""] ?? 0;
+          const bRank = patchRank[patchStatuses?.[b.id] ?? ""] ?? 0;
+          comparison = aRank - bRank;
+          break;
+        }
       }
 
       return sortDirection === "asc" ? comparison : -comparison;
@@ -148,6 +157,7 @@ export default function ItemsPage() {
     sortField,
     sortDirection,
     commentCounts,
+    patchStatuses,
   ]);
 
   function handleSort(field: SortField) {
@@ -163,7 +173,7 @@ export default function ItemsPage() {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Items</h1>
           <p className="text-sm text-muted-foreground">
@@ -215,6 +225,7 @@ export default function ItemsPage() {
           items={filteredAndSortedItems}
           balanceConfig={balanceConfig ?? null}
           commentCounts={commentCounts ?? {}}
+          patchStatuses={patchStatuses ?? {}}
           sortField={sortField}
           sortDirection={sortDirection}
           onSort={handleSort}

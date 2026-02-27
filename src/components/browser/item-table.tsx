@@ -26,12 +26,41 @@ import {
   ArrowUpDown,
   MessageSquare,
   FlaskConical,
+  Sparkles,
+  TrendingUp,
+  TrendingDown,
+  ArrowLeftRight,
 } from "lucide-react";
+import type { PatchStatus } from "@/types/history";
+
+const PATCH_STATUS_CONFIG: Record<string, { label: string; className: string; icon: React.ElementType }> = {
+  new: {
+    label: "New",
+    className: "border-purple-500/50 text-purple-400 bg-purple-500/10",
+    icon: Sparkles,
+  },
+  buffed: {
+    label: "Buffed",
+    className: "border-green-500/50 text-green-400 bg-green-500/10",
+    icon: TrendingUp,
+  },
+  nerfed: {
+    label: "Nerfed",
+    className: "border-red-500/50 text-red-400 bg-red-500/10",
+    icon: TrendingDown,
+  },
+  adjusted: {
+    label: "Adjusted",
+    className: "border-blue-500/50 text-blue-400 bg-blue-500/10",
+    icon: ArrowLeftRight,
+  },
+};
 
 interface ItemTableProps {
   items: Item[];
   balanceConfig: BalanceConfig | null;
   commentCounts: Record<string, number>;
+  patchStatuses: Record<string, PatchStatus>;
   sortField: SortField;
   sortDirection: SortDirection;
   onSort: (field: SortField) => void;
@@ -70,6 +99,7 @@ export function ItemTable({
   items,
   balanceConfig,
   commentCounts,
+  patchStatuses,
   sortField,
   sortDirection,
   onSort,
@@ -128,13 +158,14 @@ export function ItemTable({
     { field: "attributes", label: "Attrs", className: "w-[80px]" },
     { field: "enchantments", label: "Enchants", className: "w-[90px]" },
     { field: "comments", label: "Comments", className: "w-[100px]" },
+    { field: "patch", label: "Patch", className: "w-[90px]" },
   ];
 
   const tooltipBudget = hoveredItemId ? budgetMap[hoveredItemId] : undefined;
 
   return (
     <>
-      <div className="rounded-md border">
+      <div className="rounded-md border overflow-x-auto">
         <Table>
           <TableHeader>
             <TableRow>
@@ -274,6 +305,23 @@ export function ItemTable({
                         --
                       </span>
                     )}
+                  </TableCell>
+
+                  {/* Patch status */}
+                  <TableCell>
+                    {(() => {
+                      const status = patchStatuses[item.id];
+                      if (!status) return <span className="text-sm text-muted-foreground">--</span>;
+                      const cfg = PATCH_STATUS_CONFIG[status];
+                      if (!cfg) return <span className="text-sm text-muted-foreground">--</span>;
+                      const Icon = cfg.icon;
+                      return (
+                        <Badge variant="outline" className={cn("text-xs", cfg.className)}>
+                          <Icon className="h-3 w-3 mr-1" />
+                          {cfg.label}
+                        </Badge>
+                      );
+                    })()}
                   </TableCell>
 
                   {/* Status (Test badge) */}

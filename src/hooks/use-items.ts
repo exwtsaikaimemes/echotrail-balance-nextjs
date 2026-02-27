@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { getSocketId } from "@/components/providers/socket-provider";
 import type { Item } from "@/types/item";
+import type { PatchStatus } from "@/types/history";
 
 function socketHeader(): Record<string, string> {
   const id = getSocketId();
@@ -146,5 +147,21 @@ export function useImportWorkspace() {
       queryClient.invalidateQueries({ queryKey: ["items"] });
       queryClient.invalidateQueries({ queryKey: ["balance"] });
     },
+  });
+}
+
+// ── Patch statuses per item for current version ──
+
+async function fetchPatchStatuses(): Promise<Record<string, PatchStatus>> {
+  const res = await fetch("/api/items/patch-status");
+  if (!res.ok) throw new Error("Failed to fetch patch statuses");
+  const data = await res.json();
+  return data.statuses;
+}
+
+export function useItemPatchStatuses() {
+  return useQuery({
+    queryKey: ["itemPatchStatuses"],
+    queryFn: fetchPatchStatuses,
   });
 }

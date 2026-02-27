@@ -9,7 +9,8 @@ import { AllowancesGrid } from "@/components/config/allowances-grid";
 import { FormulaSelector } from "@/components/config/formula-selector";
 import { AttributeDefsTable } from "@/components/config/attribute-defs-table";
 import { ConfigImportExport } from "@/components/config/config-import-export";
-import { Settings, Scale, Grid3X3, FunctionSquare, BookOpen } from "lucide-react";
+import { PatchVersionManager } from "@/components/config/patch-version-manager";
+import { Settings, Scale, Grid3X3, FunctionSquare, BookOpen, Tag } from "lucide-react";
 
 export default function ConfigPage() {
   const { data: session } = useSession();
@@ -20,14 +21,14 @@ export default function ConfigPage() {
   if (isLoading) {
     return (
       <div className="space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
           <div className="space-y-1">
-            <Skeleton className="h-8 w-64" />
-            <Skeleton className="h-4 w-96" />
+            <Skeleton className="h-8 w-full sm:w-64" />
+            <Skeleton className="h-4 w-full sm:w-96" />
           </div>
-          <Skeleton className="h-10 w-48" />
+          <Skeleton className="h-10 w-full sm:w-48" />
         </div>
-        <Skeleton className="h-10 w-[500px]" />
+        <Skeleton className="h-10 w-full sm:w-[500px]" />
         <div className="space-y-3">
           {Array.from({ length: 10 }).map((_, i) => (
             <Skeleton key={i} className="h-12 w-full" />
@@ -50,7 +51,7 @@ export default function ConfigPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="flex items-center gap-2 text-2xl font-bold tracking-tight">
             <Settings className="h-6 w-6" />
@@ -64,7 +65,7 @@ export default function ConfigPage() {
       </div>
 
       <Tabs defaultValue="weights" className="space-y-4">
-        <TabsList className="grid w-full max-w-[600px] grid-cols-4">
+        <TabsList className="flex w-full max-w-[750px] overflow-x-auto whitespace-nowrap">
           <TabsTrigger value="weights" className="flex items-center gap-1.5">
             <Scale className="h-3.5 w-3.5" />
             Weights
@@ -80,6 +81,10 @@ export default function ConfigPage() {
           <TabsTrigger value="defs" className="flex items-center gap-1.5">
             <BookOpen className="h-3.5 w-3.5" />
             Attribute Defs
+          </TabsTrigger>
+          <TabsTrigger value="patch-versions" className="flex items-center gap-1.5">
+            <Tag className="h-3.5 w-3.5" />
+            Patch Version
           </TabsTrigger>
         </TabsList>
 
@@ -108,6 +113,10 @@ export default function ConfigPage() {
             attributeDefs={balanceConfig.attributeDefs}
             isAdmin={isAdmin}
           />
+        </TabsContent>
+
+        <TabsContent value="patch-versions">
+          <PatchVersionManager isAdmin={isAdmin} />
         </TabsContent>
       </Tabs>
     </div>
