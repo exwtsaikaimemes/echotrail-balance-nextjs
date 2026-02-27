@@ -1,12 +1,12 @@
 "use client";
 
-import { useCallback, useEffect } from "react";
+import { useCallback } from "react";
 import { useForm, FormProvider } from "react-hook-form";
 import { useSession } from "next-auth/react";
 import { toast } from "sonner";
 import { useItem, useUpdateItem } from "@/hooks/use-items";
 import { useBalanceConfig } from "@/hooks/use-balance";
-import { type Item, emptyItem } from "@/types/item";
+import { type Item } from "@/types/item";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { ItemPicker } from "./item-picker";
@@ -19,29 +19,31 @@ import { BudgetBar } from "@/components/editor/budget-bar";
 import { Save, Loader2 } from "lucide-react";
 
 interface CompareColumnProps {
-  itemKey: string | null;
-  onItemKeyChange: (key: string | null) => void;
+  itemKey: string;
+  onItemKeyChange: (key: string) => void;
 }
 
-export function CompareColumn({ itemKey, onItemKeyChange }: CompareColumnProps) {
+/* ── Inner form: mounts only when item data is available ──────────── */
+
+interface CompareColumnFormProps {
+  item: Item;
+  onItemKeyChange: (key: string) => void;
+}
+
+function CompareColumnForm({ item, onItemKeyChange }: CompareColumnFormProps) {
   const { data: session } = useSession();
   const { data: balanceConfig } = useBalanceConfig();
-  const { data: item, isLoading } = useItem(itemKey ?? undefined);
   const updateItem = useUpdateItem();
 
   const methods = useForm<Item>({
-    defaultValues: item ?? (emptyItem() as Item),
+    defaultValues: item,
     mode: "onChange",
   });
 
-  const { handleSubmit, reset, formState: { isDirty, isSubmitting } } = methods;
-
-  // Reset form when fetched item changes
-  useEffect(() => {
-    if (item) {
-      reset(item);
-    }
-  }, [item, reset]);
+  const {
+    handleSubmit,
+    formState: { isDirty, isSubmitting },
+  } = methods;
 
   const handlePickerSelect = useCallback(
     (key: string) => {
@@ -58,7 +60,6 @@ export function CompareColumn({ itemKey, onItemKeyChange }: CompareColumnProps) 
 
   const onSubmit = useCallback(
     async (data: Item) => {
-      if (!item) return;
       try {
         const username = session?.user?.username ?? "unknown";
         await updateItem.mutateAsync({
@@ -72,44 +73,17 @@ export function CompareColumn({ itemKey, onItemKeyChange }: CompareColumnProps) 
         toast.error(`Save failed: ${message}`);
       }
     },
-    [item, updateItem, session]
+    [item.id, updateItem, session]
   );
 
   const isSaving = isSubmitting || updateItem.isPending;
-
-  // Empty state — no item selected
-  if (!itemKey) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-muted-foreground/25 min-h-[400px] p-8 gap-4">
-        <p className="text-sm text-muted-foreground">Select an item to compare</p>
-        <ItemPicker selectedKey={null} onSelect={(key) => onItemKeyChange(key)} />
-      </div>
-    );
-  }
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
-      </div>
-    );
-  }
-
-  if (!item) {
-    return (
-      <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-destructive/25 min-h-[400px] p-8 gap-4">
-        <p className="text-sm text-destructive">Item not found: {itemKey}</p>
-        <ItemPicker selectedKey={itemKey} onSelect={(key) => onItemKeyChange(key)} />
-      </div>
-    );
-  }
 
   return (
     <FormProvider {...methods}>
       <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
         {/* Header: picker + save */}
         <div className="flex items-center gap-2 flex-wrap">
-          <ItemPicker selectedKey={itemKey} onSelect={handlePickerSelect} />
+          <ItemPicker selectedKey={item.itemKey} onSelect={handlePickerSelect} />
           <Button type="submit" size="sm" disabled={isSaving}>
             {isSaving ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -132,5 +106,36 @@ export function CompareColumn({ itemKey, onItemKeyChange }: CompareColumnProps) 
         <CommentsSection itemId={item.id} />
       </form>
     </FormProvider>
+  );
+}
+
+/* ── Outer shell: loading / error states ──────────────────────────── */
+
+export function CompareColumn({ itemKey, onItemKeyChange }: CompareColumnProps) {
+  const { data: item, isLoading } = useItem(itemKey);
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!item) {
+    return (
+      <div className="flex flex-col items-center justify-center rounded-lg border-2 border-dashed border-destructive/25 min-h-[400px] p-8 gap-4">
+        <p className="text-sm text-destructive">Item not found: {itemKey}</p>
+        <ItemPicker selectedKey={itemKey} onSelect={(key) => onItemKeyChange(key)} />
+      </div>
+    );
+  }
+
+  return (
+    <CompareColumnForm
+      key={item.id}
+      item={item}
+      onItemKeyChange={onItemKeyChange}
+    />
   );
 }

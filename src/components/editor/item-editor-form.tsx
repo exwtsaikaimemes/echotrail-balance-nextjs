@@ -263,7 +263,7 @@ export function ItemEditorForm({ initialItem }: ItemEditorFormProps) {
         </div>
 
         {/* Two-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-[750px_1fr] gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-[550px_830px] gap-3">
           {/* Left column: form fields (narrow) */}
           <div className="space-y-6">
             <ItemBasicFields isEditMode={isEditMode} />
