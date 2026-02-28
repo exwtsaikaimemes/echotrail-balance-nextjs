@@ -7,6 +7,7 @@ import { useBalanceConfig } from "@/hooks/use-balance";
 import { useCommentCounts } from "@/hooks/use-comments";
 import { useDebounce } from "@/hooks/use-debounce";
 import { useCookieState } from "@/hooks/use-cookie-state";
+import { computeItemBudget } from "@/lib/budget";
 import { ItemTableToolbar } from "@/components/browser/item-table-toolbar";
 import { ItemTable } from "@/components/browser/item-table";
 import { Button } from "@/components/ui/button";
@@ -44,10 +45,10 @@ export default function ItemsPage() {
   const { data: commentCounts } = useCommentCounts();
   const { data: patchStatuses } = useItemPatchStatuses();
 
-  const [searchQuery, setSearchQuery] = useState("");
-  const [rarityFilter, setRarityFilter] = useState<string>("ALL");
-  const [equipmentFilter, setEquipmentFilter] = useState<string>("ALL");
-  const [testFilter, setTestFilter] = useState<TestFilter>("all");
+  const [searchQuery, setSearchQuery] = useCookieState("search-query", "");
+  const [rarityFilter, setRarityFilter] = useCookieState<string>("rarity-filter", "ALL");
+  const [equipmentFilter, setEquipmentFilter] = useCookieState<string>("equipment-filter", "ALL");
+  const [testFilter, setTestFilter] = useCookieState<TestFilter>("test-filter", "all");
   const [sortField, setSortField] = useCookieState<SortField>("sort-field", "name");
   const [sortDirection, setSortDirection] = useCookieState<SortDirection>("sort-dir", "asc");
   const [compareSelection, setCompareSelection] = useState<Set<string>>(new Set());
@@ -119,10 +120,15 @@ export default function ItemsPage() {
         case "equipment":
           comparison = a.equipment.localeCompare(b.equipment);
           break;
-        case "budget":
-          // Budget sorting is handled in the table since it needs the balance config
-          comparison = 0;
+        case "budget": {
+          if (!balanceConfig) { comparison = 0; break; }
+          const aBudget = computeItemBudget(a, balanceConfig);
+          const bBudget = computeItemBudget(b, balanceConfig);
+          const aRatio = aBudget.allowed > 0 ? aBudget.used / aBudget.allowed : 0;
+          const bRatio = bBudget.allowed > 0 ? bBudget.used / bBudget.allowed : 0;
+          comparison = aRatio - bRatio;
           break;
+        }
         case "attributes":
           comparison = a.attributes.length - b.attributes.length;
           break;
@@ -158,6 +164,7 @@ export default function ItemsPage() {
     sortDirection,
     commentCounts,
     patchStatuses,
+    balanceConfig,
   ]);
 
   function handleSort(field: SortField) {

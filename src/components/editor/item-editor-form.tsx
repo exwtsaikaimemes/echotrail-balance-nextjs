@@ -266,7 +266,7 @@ export function ItemEditorForm({ initialItem }: ItemEditorFormProps) {
         <BudgetBar balanceConfig={balanceConfig ?? null} />
 
         {/* Two-column layout */}
-        <div className="grid grid-cols-1 lg:grid-cols-[550px_830px] gap-3">
+        <div className="grid grid-cols-1 lg:grid-cols-[2fr_3fr] gap-3">
           {/* Left column: form fields (narrow) */}
           <div className="space-y-6">
             <ItemBasicFields isEditMode={isEditMode} />

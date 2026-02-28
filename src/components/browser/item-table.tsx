@@ -87,6 +87,20 @@ function SortIcon({
   );
 }
 
+const BUDGET_STATUS_COLORS = {
+  ok: "#22c55e",    // green-500
+  warn: "#eab308",  // yellow-500
+  over: "#ef4444",  // red-500
+};
+
+function getBudgetStatusColor(budget: BudgetBreakdown): string {
+  if (budget.allowed === 0) return "#888888";
+  const ratio = budget.used / budget.allowed;
+  if (ratio > 1) return BUDGET_STATUS_COLORS.over;
+  if (ratio >= 0.9) return BUDGET_STATUS_COLORS.warn;
+  return BUDGET_STATUS_COLORS.ok;
+}
+
 function getBudgetColor(budget: BudgetBreakdown): string {
   if (budget.allowed === 0) return "text-muted-foreground";
   const ratio = budget.used / budget.allowed;
@@ -261,17 +275,16 @@ export function ItemTable({
                   {/* Budget */}
                   <TableCell>
                     {budget && budget.allowed > 0 ? (
-                      <span
-                        className={cn(
-                          "text-sm font-mono tabular-nums",
-                          getBudgetColor(budget)
-                        )}
+                      <Badge
+                        variant="outline"
+                        className="border-transparent font-mono text-xs tabular-nums"
+                        style={{
+                          color: getBudgetStatusColor(budget),
+                          backgroundColor: `${getBudgetStatusColor(budget)}18`,
+                        }}
                       >
-                        {budget.used}
-                        <span className="text-muted-foreground">
-                          {" "}/ {budget.allowed}
-                        </span>
-                      </span>
+                        {budget.used}/{budget.allowed}
+                      </Badge>
                     ) : (
                       <span className="text-sm text-muted-foreground">
                         --
