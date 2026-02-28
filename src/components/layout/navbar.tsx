@@ -24,12 +24,16 @@ import {
   BookOpen,
   LogOut,
   Menu,
+  Backpack,
+  TrendingUp,
 } from "lucide-react";
 
 const navLinks = [
   { href: "/items", label: "Items", icon: Sword },
   { href: "/compare", label: "Compare", icon: GitCompareArrows },
   { href: "/attributes", label: "Attributes", icon: BarChart3 },
+  { href: "/loadout", label: "Loadout", icon: Backpack },
+  { href: "/stats", label: "Stats", icon: TrendingUp },
   { href: "/history", label: "Patch Notes", icon: FileText },
   { href: "/patch-notes", label: "Public Notes", icon: Globe },
   { href: "/config", label: "Config", icon: Settings },

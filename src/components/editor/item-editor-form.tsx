@@ -35,6 +35,7 @@ import { BudgetBar } from "./budget-bar";
 import { KotlinCodePanel } from "./kotlin-code-panel";
 import { TooltipPreview } from "./tooltip-preview";
 import { ItemHistoryPanel } from "./item-history-panel";
+import EquipButton from "@/components/shared/EquipButton";
 import {
   ArrowLeft,
   Save,
@@ -222,6 +223,10 @@ export function ItemEditorForm({ initialItem }: ItemEditorFormProps) {
                 <Copy className="mr-2 h-4 w-4" />
                 Duplicate
               </Button>
+
+              {initialItem && (
+                <EquipButton item={initialItem} variant="outline" size="sm" />
+              )}
 
               <Dialog>
                 <DialogTrigger asChild>

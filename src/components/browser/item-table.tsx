@@ -20,6 +20,7 @@ import type { Item } from "@/types/item";
 import type { BalanceConfig } from "@/types/balance";
 import type { SortField, SortDirection } from "@/app/(main)/items/page";
 import { Checkbox } from "@/components/ui/checkbox";
+import EquipButton from "@/components/shared/EquipButton";
 import {
   ArrowUp,
   ArrowDown,
@@ -205,6 +206,7 @@ export function ItemTable({
                   </span>
                 </TableHead>
               ))}
+              <TableHead className="w-[70px]">Equip</TableHead>
               <TableHead className="w-[70px]">Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -335,6 +337,11 @@ export function ItemTable({
                         </Badge>
                       );
                     })()}
+                  </TableCell>
+
+                  {/* Equip button */}
+                  <TableCell onClick={(e) => e.stopPropagation()}>
+                    <EquipButton item={item} size="sm" showIcon={false} />
                   </TableCell>
 
                   {/* Status (Test badge) */}

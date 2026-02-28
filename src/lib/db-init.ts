@@ -90,6 +90,36 @@ const CREATE_PATCH_VERSIONS_TABLE = `
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
 `;
 
+const CREATE_LOADOUT_CURRENT_TABLE = `
+  CREATE TABLE IF NOT EXISTS echotrail_itemmanager_loadout_current (
+    username      VARCHAR(32) PRIMARY KEY,
+    main_hand     VARCHAR(255) NULL,
+    off_hand      VARCHAR(255) NULL,
+    helmet        VARCHAR(255) NULL,
+    chestplate    VARCHAR(255) NULL,
+    leggings      VARCHAR(255) NULL,
+    boots         VARCHAR(255) NULL,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+`;
+
+const CREATE_LOADOUT_SAVED_TABLE = `
+  CREATE TABLE IF NOT EXISTS echotrail_itemmanager_loadout_saved (
+    id            VARCHAR(36) PRIMARY KEY,
+    username      VARCHAR(32) NOT NULL,
+    name          VARCHAR(64) NOT NULL,
+    main_hand     VARCHAR(255) NULL,
+    off_hand      VARCHAR(255) NULL,
+    helmet        VARCHAR(255) NULL,
+    chestplate    VARCHAR(255) NULL,
+    leggings      VARCHAR(255) NULL,
+    boots         VARCHAR(255) NULL,
+    created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_username (username)
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci
+`;
+
 const CREATE_BALANCE_CONFIG_TABLE = `
   CREATE TABLE IF NOT EXISTS echotrail_itemmanager_balance_config (
     id          INT PRIMARY KEY,
@@ -155,6 +185,8 @@ export async function initializeDatabase(): Promise<void> {
   await pool.execute(CREATE_BALANCE_CONFIG_TABLE);
   await pool.execute(CREATE_BUDGET_FORMULAS_TABLE);
   await pool.execute(CREATE_PATCH_VERSIONS_TABLE);
+  await pool.execute(CREATE_LOADOUT_CURRENT_TABLE);
+  await pool.execute(CREATE_LOADOUT_SAVED_TABLE);
 
   // 2. Migration: add is_test column if missing
   const [isTestCols] = await pool.execute(

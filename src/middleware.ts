@@ -12,5 +12,7 @@ export const config = {
     "/history/:path*",
     "/config/:path*",
     "/wiki/:path*",
+    "/loadout/:path*",
+    "/stats/:path*",
   ],
 };

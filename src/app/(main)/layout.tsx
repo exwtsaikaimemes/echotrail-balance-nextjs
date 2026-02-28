@@ -1,4 +1,5 @@
 import { Navbar } from "@/components/layout/navbar";
+import FloatingLoadoutStats from "@/components/loadout/FloatingLoadoutStats";
 
 export default function MainLayout({
   children,
@@ -9,6 +10,7 @@ export default function MainLayout({
     <div className="min-h-screen bg-background">
       <Navbar />
       <main className="px-3 py-4 sm:px-5 sm:py-6">{children}</main>
+      <FloatingLoadoutStats />
     </div>
   );
 }
