@@ -53,7 +53,7 @@ export default function LoadoutStatSummary() {
   stats.sort((a, b) => a.name.localeCompare(b.name));
 
   return (
-    <div className="mt-4">
+    <div className="sticky top-20">
       <h3 className="font-semibold mb-3">Loadout Stats</h3>
       <Table>
         <TableHeader>

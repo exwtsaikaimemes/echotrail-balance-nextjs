@@ -54,6 +54,16 @@ export default function FloatingLoadoutStats() {
         // Ignore parse errors, use default
       }
     }
+
+    // Listen for reopening event from navbar
+    const handleShowStats = () => {
+      setWindowState((prev) => ({ ...prev, open: true }));
+    };
+
+    window.addEventListener('loadout-stats-show', handleShowStats);
+    return () => {
+      window.removeEventListener('loadout-stats-show', handleShowStats);
+    };
   }, []);
 
   // Save state to localStorage whenever it changes

@@ -1,19 +1,33 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { useUpdateLoadoutSlot } from "@/hooks/use-loadout";
 import { getEligibleSlots } from "@/lib/loadout-utils";
 import type { Item } from "@/types/item";
+import type { LoadoutSlot } from "@/types/loadout";
 import { Zap } from "lucide-react";
 import { toast } from "sonner";
-import SlotPickerModal from "@/components/loadout/SlotPickerModal";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import {
+  Command,
+  CommandEmpty,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from "@/components/ui/command";
+import { SLOT_LABELS, SLOT_ICONS } from "@/constants/loadout";
 
 interface EquipButtonProps {
   item: Item;
   variant?: "default" | "outline" | "ghost" | "secondary";
   size?: "default" | "sm" | "lg";
   showIcon?: boolean;
+  iconOnly?: boolean;
 }
 
 export default function EquipButton({
@@ -21,12 +35,13 @@ export default function EquipButton({
   variant = "outline",
   size = "sm",
   showIcon = true,
+  iconOnly = false,
 }: EquipButtonProps) {
   const [showModal, setShowModal] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
   const updateLoadout = useUpdateLoadoutSlot();
 
-  const eligibleSlots = getEligibleSlots(item);
+  const eligibleSlots = useMemo(() => getEligibleSlots(item), [item]);
 
   if (eligibleSlots.length === 0) {
     return (
@@ -35,20 +50,20 @@ export default function EquipButton({
         size={size}
         disabled
         title="No loadout slot available for this item"
+        className={iconOnly ? "w-10 h-10 p-0" : undefined}
       >
         {showIcon && <Zap className="w-4 h-4" />}
-        Equip
+        {!iconOnly && "Equip"}
       </Button>
     );
   }
 
-  const handleEquip = (slotToEquip?: string) => {
-    const slot = slotToEquip || eligibleSlots[0];
+  const handleEquip = (slotToEquip: string) => {
     updateLoadout.mutate(
-      { slot: slot as any, itemKey: item.itemKey },
+      { slot: slotToEquip as LoadoutSlot, itemKey: item.itemKey },
       {
         onSuccess: () => {
-          toast.success(`Equipped to ${slot.replace("_", " ")}`);
+          toast.success(`Equipped to ${slotToEquip.replace("_", " ")}`);
           setShowModal(false);
           setShowConfirm(false);
         },
@@ -74,18 +89,42 @@ export default function EquipButton({
         size={size}
         onClick={handleButtonClick}
         disabled={updateLoadout.isPending}
+        className={iconOnly ? "w-10 h-10 p-0" : undefined}
       >
         {showIcon && <Zap className="w-4 h-4" />}
-        Equip
+        {!iconOnly && "Equip"}
       </Button>
 
       {eligibleSlots.length > 1 && (
-        <SlotPickerModal
-          isOpen={showModal}
-          onClose={() => setShowModal(false)}
-          eligibleSlots={eligibleSlots}
-          onSelect={handleEquip}
-        />
+        <Popover open={showModal} onOpenChange={setShowModal}>
+          <PopoverTrigger asChild>
+            <div className="hidden" />
+          </PopoverTrigger>
+          <PopoverContent className="w-[260px] p-0" align="start">
+            <Command>
+              <CommandInput placeholder="Search slots..." />
+              <CommandList>
+                <CommandEmpty>No slots found.</CommandEmpty>
+                {(eligibleSlots as LoadoutSlot[]).map((slot) => (
+                  <CommandItem
+                    key={slot}
+                    value={slot}
+                    onSelect={() => {
+                      handleEquip(slot);
+                    }}
+                  >
+                    <div className="flex items-center gap-2 w-full">
+                      <span className="text-xl">{SLOT_ICONS[slot]}</span>
+                      <span className="font-medium text-sm">
+                        {SLOT_LABELS[slot]}
+                      </span>
+                    </div>
+                  </CommandItem>
+                ))}
+              </CommandList>
+            </Command>
+          </PopoverContent>
+        </Popover>
       )}
 
       {eligibleSlots.length === 1 && showConfirm && (

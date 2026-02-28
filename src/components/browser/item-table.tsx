@@ -184,6 +184,7 @@ export function ItemTable({
         <Table>
           <TableHeader>
             <TableRow>
+              <TableHead className="w-[40px]" />
               {onToggleCompare && (
                 <TableHead className="w-10" />
               )}
@@ -206,7 +207,6 @@ export function ItemTable({
                   </span>
                 </TableHead>
               ))}
-              <TableHead className="w-[70px]">Equip</TableHead>
               <TableHead className="w-[70px]">Status</TableHead>
             </TableRow>
           </TableHeader>
@@ -225,6 +225,11 @@ export function ItemTable({
                   onMouseMove={handleMouseMove}
                   onMouseLeave={handleMouseLeave}
                 >
+                  {/* Equip button */}
+                  <TableCell className="w-[40px]" onClick={(e) => e.stopPropagation()}>
+                    <EquipButton item={item} variant="ghost" size="sm" iconOnly={true} />
+                  </TableCell>
+
                   {/* Compare checkbox */}
                   {onToggleCompare && (
                     <TableCell className="w-10">
@@ -337,11 +342,6 @@ export function ItemTable({
                         </Badge>
                       );
                     })()}
-                  </TableCell>
-
-                  {/* Equip button */}
-                  <TableCell onClick={(e) => e.stopPropagation()}>
-                    <EquipButton item={item} size="sm" showIcon={false} />
                   </TableCell>
 
                   {/* Status (Test badge) */}

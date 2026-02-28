@@ -25,7 +25,7 @@ import {
   LogOut,
   Menu,
   Backpack,
-  TrendingUp,
+  BarChart2,
 } from "lucide-react";
 
 const navLinks = [
@@ -33,7 +33,6 @@ const navLinks = [
   { href: "/compare", label: "Compare", icon: GitCompareArrows },
   { href: "/attributes", label: "Attributes", icon: BarChart3 },
   { href: "/loadout", label: "Loadout", icon: Backpack },
-  { href: "/stats", label: "Stats", icon: TrendingUp },
   { href: "/history", label: "Patch Notes", icon: FileText },
   { href: "/patch-notes", label: "Public Notes", icon: Globe },
   { href: "/config", label: "Config", icon: Settings },
@@ -90,6 +89,14 @@ export function Navbar() {
 
         {/* Desktop right side */}
         <div className="hidden md:flex items-center gap-4">
+          <button
+            onClick={() => window.dispatchEvent(new CustomEvent('loadout-stats-show'))}
+            className="p-2 text-muted-foreground hover:text-foreground transition-colors rounded-md hover:bg-accent/50"
+            title="Show loadout stats"
+          >
+            <BarChart2 className="w-4 h-4" />
+          </button>
+
           <OnlineBadge />
 
           {session?.user && (
@@ -145,6 +152,17 @@ export function Navbar() {
             </div>
 
             <div className="border-t border-border mt-2 px-4 py-3 space-y-3">
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent('loadout-stats-show'));
+                  setSheetOpen(false);
+                }}
+                className="w-full flex items-center gap-2 px-3 py-2 rounded-md text-sm transition-colors text-muted-foreground hover:text-foreground hover:bg-accent/50"
+              >
+                <BarChart2 className="w-4 h-4" />
+                Loadout Stats
+              </button>
+
               <OnlineBadge />
 
               {session?.user && (

@@ -13,18 +13,23 @@ export default function LoadoutPage() {
   const { data: allItems, isLoading: isLoadingItems } = useItems();
   const updateSlot = useUpdateLoadoutSlot();
 
-  const handleUnequip = (slot: LoadoutSlot) => {
+  const handleEquip = (slot: LoadoutSlot, itemKey: string | null) => {
     updateSlot.mutate(
-      { slot, itemKey: null },
+      { slot, itemKey },
       {
         onSuccess: () => {
-          toast.success(`Unequipped from ${slot.replace("_", " ")}`);
+          const action = itemKey ? "Equipped" : "Unequipped";
+          toast.success(`${action} ${slot.replace("_", " ")}`);
         },
         onError: (err: any) => {
-          toast.error(err.message || "Failed to unequip item");
+          toast.error(err.message || "Failed to update loadout");
         },
       }
     );
+  };
+
+  const handleUnequip = (slot: LoadoutSlot) => {
+    handleEquip(slot, null);
   };
 
   const isLoading = isLoadingLoadout || isLoadingItems;
@@ -44,10 +49,11 @@ export default function LoadoutPage() {
       <h1 className="text-3xl font-bold mb-6">Loadout Manager</h1>
 
       <div className="grid lg:grid-cols-[3fr_2fr] gap-6">
-        {/* Left: Loadout Slots */}
+        {/* Left: Slots + Saved Loadouts */}
         <div className="space-y-6">
-          <div className="space-y-3">
-            <h2 className="text-lg font-semibold">Equipment Slots</h2>
+          {/* Equipment Slots */}
+          <div>
+            <h2 className="text-lg font-semibold mb-3">Equipment Slots</h2>
             <div className="grid sm:grid-cols-2 gap-3">
               {SLOTS.map((slot) => (
                 <LoadoutSlotCard
@@ -55,19 +61,23 @@ export default function LoadoutPage() {
                   slot={slot}
                   itemKey={currentLoadout[slot]}
                   allItems={allItems}
+                  onEquip={handleEquip}
                   onUnequip={handleUnequip}
                 />
               ))}
             </div>
           </div>
 
-          <LoadoutStatSummary />
+          {/* Saved Loadouts */}
+          <div>
+            <h2 className="text-lg font-semibold mb-3">Saved Loadouts</h2>
+            <SavedLoadoutList />
+          </div>
         </div>
 
-        {/* Right: Saved Loadouts */}
+        {/* Right: Stat Summary Sidebar */}
         <div>
-          <h2 className="text-lg font-semibold mb-4">Saved Loadouts</h2>
-          <SavedLoadoutList />
+          <LoadoutStatSummary />
         </div>
       </div>
     </div>

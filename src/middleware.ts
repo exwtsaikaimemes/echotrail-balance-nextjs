@@ -13,6 +13,5 @@ export const config = {
     "/config/:path*",
     "/wiki/:path*",
     "/loadout/:path*",
-    "/stats/:path*",
   ],
 };
